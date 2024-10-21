@@ -24,18 +24,21 @@
 
 namespace paygw_unisbg;
 
-use curl;
-use core_payment\helper;
-use stdClass;
-
 defined('MOODLE_INTERNAL') || die();
 
 require_once("$CFG->dirroot/user/lib.php");
 require_once("$CFG->dirroot/user/profile/lib.php");
 require_once($CFG->libdir . '/filelib.php');
 
+/**
+ * The payment_added event.
+ *
+ * @package     paygw_unisbg
+ * @copyright   2023 Wunderbyte GmbH <info@wunderbyte.at>
+ * @author      Jacob Viertel
+ * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
 class unisbg_helper {
-
     /**
      * @var string base URL
      */
@@ -45,9 +48,9 @@ class unisbg_helper {
      * helper constructor
      *
      * @param string $secret unisbg secret.
-     * @param bool $sandbox Whether we are working with the sandbox environment or not.
+     * @param string $environment Whether we are working with the sandbox environment or not.
      */
-    public function __construct( $environment, string $secret ) {
+    public function __construct($environment, string $secret) {
 
         if ($environment == 'sandbox') {
             $this->baseurl = 'https://stagebezahlung.uni-sbg.at/v/1/shop/' . $secret;
@@ -127,13 +130,13 @@ class unisbg_helper {
             'Content-Type: application/json',
         ];
         $ch = curl_init();
-        curl_setopt( $ch, CURLOPT_URL, $this->baseurl . '/cart' . '/' . $cartid . '/checkout' );
-        curl_setopt( $ch, CURLOPT_POST, true );
-        curl_setopt( $ch, CURLOPT_HTTPHEADER, $headers );
-        curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
-        curl_setopt( $ch, CURLOPT_POSTFIELDS, $data );
-        $result = curl_exec($ch );
-        curl_close( $ch );
+        curl_setopt($ch, CURLOPT_URL, $this->baseurl . '/cart' . '/' . $cartid . '/checkout');
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+        $result = curl_exec($ch);
+        curl_close($ch);
         $obj = json_decode($result);
         return $obj->object->url_instant;
     }
@@ -196,36 +199,32 @@ class unisbg_helper {
                 "performance_end" => $performanceend ?? date('Y-m-d', $now),
                 "account" => "441000", // Konto for USI.
                 "internal_order" => "AEP707000002", // Interalorder USI.
-                "user_variable" => "localIdentifierArticle"
+                "user_variable" => "localIdentifierArticle",
             ];
             array_push($articles, $singlearcticle);
         }
 
         $obj = (object) [
             "user_variable" => "localIdentifierCart",
-            "article" => $articles
+            "article" => $articles,
 
         ];
 
         $data = json_encode($obj);
 
-        $headers = array
-        (
-                'Content-Type: application/json'
-        );
+        $headers = ['Content-Type: application/json'];
         $ch = curl_init();
-        curl_setopt( $ch, CURLOPT_URL, $this->baseurl . '/cart');
-        curl_setopt( $ch, CURLOPT_POST, true );
-        curl_setopt( $ch, CURLOPT_HTTPHEADER, $headers );
-        curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
-        curl_setopt( $ch, CURLOPT_POSTFIELDS, $data );
-        $result = curl_exec($ch );
+        curl_setopt($ch, CURLOPT_URL, $this->baseurl . '/cart');
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+        $result = curl_exec($ch);
 
         $info = curl_getinfo($ch);
         $error = curl_error($ch);
 
-        curl_close( $ch );
+        curl_close($ch);
         return $result;
-
     }
 }

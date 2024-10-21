@@ -36,6 +36,14 @@ defined('MOODLE_INTERNAL') || die();
 
 require_once($CFG->libdir . '/externallib.php');
 
+/**
+ * The payment_added event.
+ *
+ * @package     paygw_unisbg
+ * @copyright   2024 Wunderbyte GmbH <info@wunderbyte.at>
+ * @author      Jacob Viertel
+ * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
 class get_redirect_payments extends external_api {
 
     /**
@@ -53,8 +61,18 @@ class get_redirect_payments extends external_api {
         ]);
     }
 
+    /**
+     * Returns description of method parameters.
+     * @param string $component
+     * @param string $paymentarea
+     * @param int $itemid
+     * @param int $cartid
+     * @param int $providerid
+     *
+     * @return array
+     */
     public static function execute($component, $paymentarea, $itemid, $cartid, $providerid) {
-        GLOBAL $CFG, $USER;
+        global $CFG, $USER;
 
         self::validate_parameters(self::execute_parameters(), [
             'component' => $component,

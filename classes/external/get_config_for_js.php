@@ -44,6 +44,14 @@ defined('MOODLE_INTERNAL') || die();
 
 require_once($CFG->libdir . '/externallib.php');
 
+/**
+ * The payment_added event.
+ *
+ * @package     paygw_unisbg
+ * @copyright   2024 Wunderbyte GmbH <info@wunderbyte.at>
+ * @author      Jacob Viertel
+ * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
 class get_config_for_js extends external_api {
 
     /**
@@ -69,7 +77,7 @@ class get_config_for_js extends external_api {
      * @return string[]
      */
     public static function execute(string $component, string $paymentarea, int $itemid): array {
-        GLOBAL $CFG, $USER, $SESSION, $DB;
+        global $CFG, $USER, $SESSION, $DB;
         self::validate_parameters(self::execute_parameters(), [
             'component' => $component,
             'paymentarea' => $paymentarea,

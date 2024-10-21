@@ -57,6 +57,7 @@ class checkout implements renderable, templatable {
     }
 
     /**
+     * Export data for checkout template.
      * @param renderer_base $output
      * @return array
      */

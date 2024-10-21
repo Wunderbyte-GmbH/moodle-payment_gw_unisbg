@@ -22,6 +22,9 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+/**
+ * Custom code to be run on installing the plugin.
+ */
 function xmldb_paygw_unisbg_install() {
     global $CFG;
 

@@ -18,6 +18,8 @@
  * Contains class for Uni Salzburg payment gateway.
  *
  * @package    paygw_unisbg
+ * @copyright   2024 Wunderbyte GmbH <info@wunderbyte.at>
+ * @author     Jacob Viertel
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -30,12 +32,16 @@ namespace paygw_unisbg;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class gateway extends \core_payment\gateway {
+    /**
+     * Returns supported currencies
+     * @return array
+     */
     public static function get_supported_currencies(): array {
         // See https://developer.paypal.com/docs/api/reference/currency-codes/,
         // 3-character ISO-4217: https://en.wikipedia.org/wiki/ISO_4217#Active_codes.
         return [
             'AUD', 'BRL', 'CAD', 'CHF', 'CZK', 'DKK', 'EUR', 'GBP', 'HKD', 'HUF', 'ILS', 'INR', 'JPY',
-            'MXN', 'MYR', 'NOK', 'NZD', 'PHP', 'PLN', 'RUB', 'SEK', 'SGD', 'THB', 'TRY', 'TWD', 'USD'
+            'MXN', 'MYR', 'NOK', 'NZD', 'PHP', 'PLN', 'RUB', 'SEK', 'SGD', 'THB', 'TRY', 'TWD', 'USD',
         ];
     }
 
@@ -78,10 +84,20 @@ class gateway extends \core_payment\gateway {
      * @param array $files
      * @param array $errors form errors (passed by reference)
      */
-    public static function validate_gateway_form(\core_payment\form\account_gateway $form,
-                                                 \stdClass $data, array $files, array &$errors): void {
-        if ($data->enabled &&
-                (empty($data->brandname) || empty($data->clientid) || empty($data->secret))) {
+    public static function validate_gateway_form(
+        \core_payment\form\account_gateway $form,
+        \stdClass $data,
+        array $files,
+        array &$errors
+    ): void {
+        if (
+            $data->enabled &&
+            (
+              empty($data->brandname) ||
+              empty($data->clientid) ||
+              empty($data->secret)
+            )
+        ) {
             $errors['enabled'] = get_string('gatewaycannotbeenabled', 'payment');
         }
     }

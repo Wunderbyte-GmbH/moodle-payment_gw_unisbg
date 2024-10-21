@@ -33,21 +33,35 @@ namespace paygw_unisbg\event;
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class payment_completed extends \core\event\base {
-
+    /**
+     * Init function for payment_successful class
+     */
     protected function init() {
         $this->data['crud'] = 'c';
         $this->data['edulevel'] = self::LEVEL_PARTICIPATING;
     }
 
+    /**
+     * Returns the name
+     * @return string
+     */
     public static function get_name() {
         return get_string('payment_completed', 'paygw_unisbg');
     }
 
+    /**
+     * Returns the description of the event
+     * @return string
+     */
     public function get_description() {
         return "The user with the id {$this->userid} has completed the payment transaction with this orderid: " .
             $this->other['orderid'];
     }
 
+    /**
+     * Returns the url of the event
+     * @return string
+     */
     public function get_url() {
         return new \moodle_url('/payment/gateway/unisbg/checkout.php');
     }

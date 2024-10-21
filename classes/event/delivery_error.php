@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-
 /**
  * The payment_successful event.
  *
@@ -34,19 +33,34 @@ namespace paygw_unisbg\event;
  */
 class delivery_error extends \core\event\base {
 
+    /**
+     * Init function for delivery_error class
+     */
     protected function init() {
         $this->data['crud'] = 'c';
         $this->data['edulevel'] = self::LEVEL_PARTICIPATING;
     }
 
+    /**
+     * Returns the name
+     * @return string
+     */
     public static function get_name() {
         return get_string('delivery_error', 'paygw_unisbg');
     }
 
+    /**
+     * Returns the description of the event
+     * @return string
+     */
     public function get_description() {
         return "The user with the id {$this->userid} has tried to pay, but an error occured on delivery: " . $this->other['message'];
     }
 
+    /**
+     * Returns the url of the event
+     * @return string
+     */
     public function get_url() {
         return new \moodle_url('/payment/gateway/unisbg/checkout.php');
     }

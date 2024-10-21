@@ -33,22 +33,36 @@ namespace paygw_unisbg\event;
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class payment_added extends \core\event\base {
-
+    /**
+     * Init function for payment_added class
+     */
     protected function init() {
         $this->data['crud'] = 'c';
         $this->data['edulevel'] = self::LEVEL_PARTICIPATING;
         $this->data['objecttable'] = 'paygw_unisbg_openorders';
     }
 
+    /**
+     * Returns the name
+     * @return string
+     */
     public static function get_name() {
         return get_string('payment_added', 'paygw_unisbg');
     }
 
+    /**
+     * Returns the description of the event
+     * @return string
+     */
     public function get_description() {
         return "The user with the id {$this->userid} has started a payment transaction (open order) with this orderid: " .
             $this->other['orderid'];
     }
 
+    /**
+     * Returns the url of the event
+     * @return string
+     */
     public function get_url() {
         return new \moodle_url('/payment/gateway/unisbg/checkout.php');
     }

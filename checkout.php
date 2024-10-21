@@ -13,6 +13,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
 /**
  * Add dates to option.
  *
@@ -24,6 +25,7 @@
 use paygw_unisbg\output\checkout;
 
 require_once(__DIR__ . '/../../../config.php');
+require_login();
 
 global $DB, $PAGE, $OUTPUT, $USER;
 
@@ -33,8 +35,6 @@ $component = required_param('component', PARAM_RAW);
 $paymentarea = required_param('paymentarea', PARAM_RAW);
 $ischeckstatus = required_param('ischeckstatus', PARAM_BOOL);
 $cartid = required_param('cartid', PARAM_INT);
-
-// $ischeckstatus = false;
 
 if (!$context = context_system::instance()) {
     throw new moodle_exception('badcontext');
