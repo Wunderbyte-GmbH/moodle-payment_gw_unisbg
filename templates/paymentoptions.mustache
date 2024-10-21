@@ -1,0 +1,34 @@
+<div>
+    <div class="row">
+       <div class="col">
+            <h2>
+                {{#str}}
+            paymentoptions, paygw_unisbg
+                {{/str}}
+            </h2>
+            <ul class="list-group" >
+              {{#listofproviders}}
+              <li class="list-group-item" style="display: flex;
+    justify-content: space-between;">
+                <button class="btn btn-primary select"
+                    data-action="paymentoption"
+                    data-index="{{id}}"
+                    data-component="{{component}}"
+                    data-paymentarea="{{paymentarea}}"
+                    data-itemid="{{itemid}}"
+                    data-cartid="{{cartid}}">{{label}}</button>
+                 <div >
+                <img class="img-fluid" src="{{image_url}}" />
+                </div>
+                </li>
+               {{/listofproviders}}
+            </ul>
+       </div>
+    </div>
+</div>
+
+{{#js}}
+    require(['paygw_unisbg/redirectpayment'], function(init) {
+        init.init();
+    });
+{{/js}}
