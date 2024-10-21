@@ -45,7 +45,6 @@ require_once($CFG->libdir . '/externallib.php');
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class get_redirect_payments extends external_api {
-
     /**
      * Returns description of method parameters.
      *
@@ -98,7 +97,6 @@ class get_redirect_payments extends external_api {
         return [
             'url' => $url,
         ];
-
     }
 
     /**
@@ -107,8 +105,10 @@ class get_redirect_payments extends external_api {
      * @return external_function_parameters
      */
     public static function execute_returns() {
-        return new external_function_parameters([
-            'url' => new external_value(PARAM_URL, 'Redirect URL.')
-        ]);
+        return new external_function_parameters(
+            [
+              'url' => new external_value(PARAM_URL, 'Redirect URL.'),
+            ]
+        );
     }
 }
