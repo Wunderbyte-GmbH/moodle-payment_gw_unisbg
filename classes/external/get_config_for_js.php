@@ -53,7 +53,6 @@ require_once($CFG->libdir . '/externallib.php');
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class get_config_for_js extends external_api {
-
     /**
      * Returns description of method parameters.
      *

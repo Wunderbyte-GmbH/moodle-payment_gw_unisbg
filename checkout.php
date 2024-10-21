@@ -60,4 +60,3 @@ $data = new checkout($itemid, $customer, $component, $paymentarea, $ischeckstatu
 echo $output->render_checkout($data);
 
 echo $OUTPUT->footer();
-
