@@ -52,7 +52,6 @@ if (!interface_exists(interface_transaction_complete::class)) {
  * Transaction complete class.
  */
 class transaction_complete extends external_api implements interface_transaction_complete {
-
     /**
      * Returns description of method parameters.
      *
@@ -239,7 +238,6 @@ class transaction_complete extends external_api implements interface_transaction
                         // The order is delivered.
                         // If the delivery was not successful, we trigger an event.
                         if (!payment_helper::deliver_order($component, $paymentarea, $itemid, $paymentid, (int) $userid)) {
-
                             $context = context_system::instance();
                             $event = delivery_error::create(
                                 [

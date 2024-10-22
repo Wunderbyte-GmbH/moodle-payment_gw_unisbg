@@ -227,4 +227,39 @@ class unisbg_helper {
         curl_close($ch);
         return $result;
     }
+
+    /**
+     * Creates a checkout with the Provider given an array of items
+     * @param  float $amount
+     * @return array $result Unformatted API result
+     */
+    public function get_starttransaction_data($amount) {
+        global $USER;
+        // TODO MDL-4: check if user is intern.
+        $transactiondata = [];
+        $transactiondata['stud_pers_id'] = '1';
+        $transactiondata['bed_pers_id'] = '2';
+        if ($transactiondata['ext_pers_id']) {
+            $transactiondata['ext_pers_id'] = 'TBD';
+            $transactiondata['extp_vorname'] = 'TBD';
+            $transactiondata['extp_nachname'] = 'TBD';
+            $transactiondata['extp_strasse'] = 'TBD';
+            $transactiondata['extp_hausnummer'] = 'TBD';
+            $transactiondata['extp_stadt'] = 'TBD';
+            $transactiondata['extp_plz'] = 'TBD';
+            $transactiondata['extp_land_iso'] = 'TBD';
+            $transactiondata['extp_mail'] = 'TBD';
+        }
+        $transactiondata['betrag'] = $amount;
+        $transactiondata['zahlungszweck'] = 17;
+        $transactiondata['ip_adress'] = 'TBD';
+        $transactiondata['semester_id'] = 'TBD';
+        $transactiondata['zahlungsdetails'] = 'TBD';
+        $transactiondata['zahlungsreferenz'] = 'TBD';
+        $transactiondata['zahlungshinweis'] = 'TBD';
+        $transactiondata['session_id'] = 'TBD';
+        $transactiondata['session_lang'] = 'TBD';
+        $transactiondata['terminal_id'] = 'TBD';
+        return $transactiondata;
+    }
 }
