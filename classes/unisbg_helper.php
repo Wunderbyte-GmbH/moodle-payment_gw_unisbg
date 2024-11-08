@@ -43,6 +43,10 @@ class unisbg_helper {
      * @var string base URL
      */
     private $baseurl;
+    /**
+     * @var string ws accesstoken
+     */
+    private $accesstoken;
 
     /**
      * helper constructor
@@ -51,31 +55,79 @@ class unisbg_helper {
      * @param string $environment Whether we are working with the sandbox environment or not.
      */
     public function __construct($environment, string $secret) {
-
+        $this->accesstoken = $secret;
         if ($environment == 'sandbox') {
-            $this->baseurl = 'https://stagebezahlung.uni-sbg.at/v/1/shop/' . $secret;
+            $this->baseurl = 'https://axqual.sbg.ac.at/ords/ax_app_online_zahlung/init/starttransaction';
         } else {
-            $this->baseurl = 'https://bezahlung.uni-sgb.at/v/1/shop/' . $secret;
+            $this->baseurl = 'https://axapp.sbg.ac.at/ords/ax_app_online_zahlung/init/starttransaction';
         }
     }
 
     /**
      * Returns List of available prodivers for this gateway.
-     *
+     * @param  array $data shoppingcart id
      * @return string
      */
-    public function get_provider() {
-        $function = '/provider';
+    public function inittt_transaction($data) {
         $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $this->baseurl . $function);
+        curl_setopt($ch, CURLOPT_URL, $this->baseurl);
+        curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Authorization: Bearer ' . $this->accesstoken,
+            'Content-Type: application/json'
+        ]);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
         $responsedata = curl_exec($ch);
+
         if (curl_errno($ch)) {
             return curl_error($ch);
         }
         curl_close($ch);
         return $responsedata;
     }
+
+    /**
+     * PLUS O2P Transaction URI Builder
+     * Creates a new Transaction in the O2P
+     * Create a URI to the O2P Webportal to process the payment
+     * Please take a look to the O2P Documentation for options and fields of $paymentData
+     *
+     * @param array $paymentData
+     * @return boolean
+     */
+    public function init_transaction($data) {
+        $headers = [
+            'Cache-Control: no-cache',
+            'Accept: application/json',
+            'Authorization: Bearer ' . $this->accesstoken
+        ];
+
+        $ch = curl_init();
+
+        curl_setopt($ch, CURLOPT_URL, $this->baseurl);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 2);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($data));
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, false);
+
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $contentType = curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
+        curl_close($ch);
+
+        if ($httpCode === 200 && strpos($contentType, 'application/json') === 0) {
+            $o2pTransaction = json_decode($response, true);
+            return $o2pTransaction['zahlungsurl'];
+        } else {
+            echo "Failed to create transaction. HTTP Code: $httpCode";
+        }
+        return false;
+  }
+
+
 
     /**
      * Checks out a cart in order to process the payment.
@@ -233,33 +285,65 @@ class unisbg_helper {
      * @param  float $amount
      * @return array $result Unformatted API result
      */
-    public function get_starttransaction_data($amount) {
+    public function get_starttransaction_data($amount, $cartid) {
         global $USER;
-        // TODO MDL-4: check if user is intern.
-        $transactiondata = [];
-        $transactiondata['stud_pers_id'] = '1';
-        $transactiondata['bed_pers_id'] = '2';
-        if ($transactiondata['ext_pers_id']) {
-            $transactiondata['ext_pers_id'] = 'TBD';
-            $transactiondata['extp_vorname'] = 'TBD';
-            $transactiondata['extp_nachname'] = 'TBD';
-            $transactiondata['extp_strasse'] = 'TBD';
-            $transactiondata['extp_hausnummer'] = 'TBD';
-            $transactiondata['extp_stadt'] = 'TBD';
-            $transactiondata['extp_plz'] = 'TBD';
-            $transactiondata['extp_land_iso'] = 'TBD';
-            $transactiondata['extp_mail'] = 'TBD';
+        $user = \core_user::get_user(10);
+        if (true) {
+            $address = self::extractAddressParts($user->address);
+            $transactiondata['ext_pers_id'] = $user->id;
+            $transactiondata['extp_vorname'] = $user->firstname;
+            $transactiondata['extp_nachname'] = $user->lastname;
+            $transactiondata['extp_strasse'] = $address['name'] ?? null;
+            $transactiondata['extp_hausnummer'] = $address['number'] ?? null;
+            $transactiondata['extp_stadt'] = $user->city ?? null;
+            $transactiondata['extp_plz'] = '5020';
+            $transactiondata['extp_land_iso'] = $user->country ?? null;
+            $transactiondata['extp_mail'] = $user->email ?? null;
+        } else if (false) {
+            $transactiondata['stud_pers_id'] = '1';
+        } else {
+            $transactiondata['bed_pers_id'] = '2';
         }
         $transactiondata['betrag'] = $amount;
         $transactiondata['zahlungszweck'] = 17;
-        $transactiondata['ip_adress'] = 'TBD';
-        $transactiondata['semester_id'] = 'TBD';
+        $transactiondata['ip_adress'] = $user->lastip;
         $transactiondata['zahlungsdetails'] = 'TBD';
-        $transactiondata['zahlungsreferenz'] = 'TBD';
-        $transactiondata['zahlungshinweis'] = 'TBD';
-        $transactiondata['session_id'] = 'TBD';
-        $transactiondata['session_lang'] = 'TBD';
-        $transactiondata['terminal_id'] = 'TBD';
+        $transactiondata['zahlungsreferenz'] = $cartid;
+        $transactiondata['session_lang'] = $_SESSION['SESSION']->forcelang;
         return $transactiondata;
+    }
+
+    /**
+     * Creates a checkout with the Provider given an array of items
+     * @param  string $address
+     * @return array|null
+     */
+    function extractAddressParts($address) {
+    $pattern = '/^(\d+)?\s*([\w\s]+?)\s*(\d+)?$/';
+    if (preg_match($pattern, $address, $matches)) {
+        $houseNumber = null;
+        $streetName = null;
+
+        // Determine the position of the house number and street name
+        if (!empty($matches[1]) && is_numeric($matches[1])) {
+            // Format: "123 Main St"
+            $houseNumber = $matches[1];
+            $streetName = trim($matches[2]);
+        } elseif (!empty($matches[3]) && is_numeric($matches[3])) {
+            // Format: "Main St 123"
+            $houseNumber = $matches[3];
+            $streetName = trim($matches[2]);
+        } else {
+            // Only street name is available, no house number
+            $streetName = trim($matches[2]);
+        }
+
+        return [
+            'number' => $houseNumber,
+            'name' => $streetName,
+        ];
+    } else {
+        return null; // Address does not match expected format
+    }
     }
 }

@@ -96,14 +96,14 @@ class get_config_for_js extends external_api {
         $items = shopping_cart_history::return_data_via_identifier($itemid);
 
         $ushelper = new unisbg_helper($environment, $secret);
-        $provider = $ushelper->get_provider();
         $checkout = $ushelper->create_checkout($items);
         $checkoutobj = json_decode($checkout);
         $cartid = $checkoutobj->object->id;
 
         $now = time();
         $amount = helper::get_rounded_cost($payable->get_amount(), $payable->get_currency(), $surcharge);
-        $starttransactiondata = $ushelper->get_starttransaction_data($amount);
+        $starttransactiondata = $ushelper->get_starttransaction_data($amount, $cartid);
+        $provider = $ushelper->init_transaction($starttransactiondata);
 
         $record = new stdClass();
         $record->tid = $cartid;
