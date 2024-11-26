@@ -22,27 +22,23 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-defined('MOODLE_INTERNAL') || die();
+require_once(__DIR__ . '/classes/plus_payment_service.php');
+require_once(__DIR__ . '/classes/transaction_complete.php');
 
-$encryptedpayload = optional_param('zahlungsdetails', '', PARAM_RAW);
+use paygw_unisbg\plus_payment_service;
+use paygw_unisbg\transaction_complete;
+;
 
-// Todo: Decrypt.
-
-// Todo: Via tid, return $itemmid & $userid from unisbg_openorderstable.
-
-// Todo Call moodle webservice on result SUCCESS.
-
-$notifyurl = new \moodle_url(
-  '/webservice/rest/server.php',
-  [
-      'wsfunction' => 'local_shopping_cart_verify_purchase',
-      'wstoken' => get_config('paygw_unisbg', 'tokenforverification'),
-      'moodlewsrestformat' => 'json',
-      'identifier' => $itemid,
-      'tid' => $cartid,
-      'paymentgateway' => 'unisbg',
-      'userid' => $userdata->id,
-  ]
-);
-
-redirect($notifyurl->out());
+$rawbodydata = file_get_contents('php://input');
+// Check if an incomming ozp feedback exists
+if(!empty($rawbodydata)){
+    $pluspaymentservice = new plus_payment_service();
+    $transactioncomplete = new transaction_complete();
+    // Todo: Decrypt.
+    $responsecodeanddata = $pluspaymentservice->handle_ozp_feedback($rawbodydata);
+    // Todo: Via tid, return $itemmid & $userid from unisbg_openorderstable
+    //$transactioncomplete->trigger_execution(component, paymentarea, itemid, tid, userid);
+    // Todo Call moodle webservice on result SUCCESS.
+    //$transactioncomplete->trigger_transaction_completed_webservice(itemid, tid, userid);
+    $testing = 'end';
+}

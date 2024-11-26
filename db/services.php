@@ -32,14 +32,6 @@ $functions = [
         'type'        => 'read',
         'ajax'        => true,
     ],
-    'paygw_unisbg_create_transaction_complete' => [
-        'classname'   => 'paygw_unisbg\external\transaction_complete',
-        'classpath'   => '',
-        'description' => 'Takes care of what needs to be done when a unisbg transaction comes back as complete.',
-        'type'        => 'write',
-        'ajax'        => true,
-        'loginrequired' => false,
-    ],
     'paygw_unisbg_redirectpayment' => [
         'classname'   => 'paygw_unisbg\external\get_redirect_payments',
         'classpath'   => '',
