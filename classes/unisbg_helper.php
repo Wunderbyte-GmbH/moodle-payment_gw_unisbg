@@ -75,7 +75,7 @@ class unisbg_helper {
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_HTTPHEADER, [
             'Authorization: Bearer ' . $this->accesstoken,
-            'Content-Type: application/json'
+            'Content-Type: application/json',
         ]);
         curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
         $responsedata = curl_exec($ch);
@@ -93,14 +93,14 @@ class unisbg_helper {
      * Create a URI to the O2P Webportal to process the payment
      * Please take a look to the O2P Documentation for options and fields of $paymentData
      *
-     * @param array $paymentData
+     * @param array $data
      * @return boolean
      */
     public function init_transaction($data) {
         $headers = [
             'Cache-Control: no-cache',
             'Accept: application/json',
-            'Authorization: Bearer ' . $this->accesstoken
+            'Authorization: Bearer ' . $this->accesstoken,
         ];
 
         $ch = curl_init();
@@ -114,18 +114,18 @@ class unisbg_helper {
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, false);
 
         $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $contentType = curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
+        $httpcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $contenttype = curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
         curl_close($ch);
 
-        if ($httpCode === 200 && strpos($contentType, 'application/json') === 0) {
-            $o2pTransaction = json_decode($response, true);
-            return $o2pTransaction['zahlungsurl'];
+        if ($httpcode === 200 && strpos($contenttype, 'application/json') === 0) {
+            $o2ptransaction = json_decode($response, true);
+            return $o2ptransaction['zahlungsurl'];
         } else {
-            echo "Failed to create transaction. HTTP Code: $httpCode";
+            echo "Failed to create transaction. HTTP Code: $httpcode";
         }
         return false;
-  }
+    }
 
 
 
@@ -319,31 +319,31 @@ class unisbg_helper {
      * @return array|null
      */
     function extractAddressParts($address) {
-    $pattern = '/^(\d+)?\s*([\w\s]+?)\s*(\d+)?$/';
-    if (preg_match($pattern, $address, $matches)) {
-        $houseNumber = null;
-        $streetName = null;
+        $pattern = '/^(\d+)?\s*([\w\s]+?)\s*(\d+)?$/';
+        if (preg_match($pattern, $address, $matches)) {
+            $housenumber = null;
+            $streetname = null;
 
-        // Determine the position of the house number and street name
-        if (!empty($matches[1]) && is_numeric($matches[1])) {
-            // Format: "123 Main St"
-            $houseNumber = $matches[1];
-            $streetName = trim($matches[2]);
-        } elseif (!empty($matches[3]) && is_numeric($matches[3])) {
-            // Format: "Main St 123"
-            $houseNumber = $matches[3];
-            $streetName = trim($matches[2]);
+            // Determine the position of the house number and street name.
+            if (!empty($matches[1]) && is_numeric($matches[1])) {
+                // Format: "123 Main St".
+                $housenumber = $matches[1];
+                $streetname = trim($matches[2]);
+            } elseif (!empty($matches[3]) && is_numeric($matches[3])) {
+                // Format: "Main St 123".
+                $housenumber = $matches[3];
+                $streetname = trim($matches[2]);
+            } else {
+                // Only street name is available, no house number.
+                $streetname = trim($matches[2]);
+            }
+
+            return [
+                'number' => $housenumber,
+                'name' => $streetname,
+            ];
         } else {
-            // Only street name is available, no house number
-            $streetName = trim($matches[2]);
+            return null; // Address does not match expected format.
         }
-
-        return [
-            'number' => $houseNumber,
-            'name' => $streetName,
-        ];
-    } else {
-        return null; // Address does not match expected format
-    }
     }
 }
