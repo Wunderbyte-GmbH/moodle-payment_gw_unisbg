@@ -75,3 +75,5 @@ $string['unknownzip'] = "unknown zip";
 $string['unknownaddress'] = "unknown address";
 
 $string['tokenforverification'] = "Token for verification";
+$string['successmessagepaymentinit'] = "Successfully initialised the payment process. Your purchase should be available to you soon.";
+$string['errormessagepaymentinit'] = "Payment initialization was cancelled.";

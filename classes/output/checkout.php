@@ -43,13 +43,8 @@ class checkout implements renderable, templatable {
     /**
      * In the Constructor, we gather all the data we need ans store it in the data property.
      */
-    public function __construct($itemid, $customer, $component, $paymentarea, $ischeckstatus, $cartid) {
-        $this->data['itemid'] = $itemid;
-        $this->data['customer'] = $customer;
-        $this->data['component'] = $component;
-        $this->data['paymentarea'] = $paymentarea;
-        $this->data['ischeckstatus'] = $ischeckstatus;
-        $this->data['cartid'] = $cartid;
+    public function __construct($status) {
+        $this->data['status'] = $status;
     }
 
     /**
@@ -58,7 +53,6 @@ class checkout implements renderable, templatable {
      * @return array
      */
     public function export_for_template(renderer_base $output) {
-
         return $this->data;
     }
 }

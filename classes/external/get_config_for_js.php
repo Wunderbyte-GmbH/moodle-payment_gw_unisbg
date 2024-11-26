@@ -163,7 +163,6 @@ class get_config_for_js extends external_api {
         $checkstatustask->set_custom_data($taskdata);
         $checkstatustask->set_next_run_time($nextruntime);
         \core\task\manager::reschedule_or_queue_adhoc_task($checkstatustask);
-
         return [
             'clientid' => $config['clientid'],
             'brandname' => $config['brandname'],
@@ -173,7 +172,7 @@ class get_config_for_js extends external_api {
             'environment' => $environment,
             'language' => $language,
             'providerobject' => $provider,
-            'cartid' => $cartid,
+            'cartid' => $itemid,
             'url' => $provider['zahlungsurl'],
         ];
     }

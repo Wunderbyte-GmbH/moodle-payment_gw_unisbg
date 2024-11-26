@@ -29,12 +29,7 @@ require_login();
 
 global $DB, $PAGE, $OUTPUT, $USER;
 
-$customer = required_param('customer', PARAM_RAW);
-$itemid = required_param('itemid', PARAM_RAW);
-$component = required_param('component', PARAM_RAW);
-$paymentarea = required_param('paymentarea', PARAM_RAW);
-$ischeckstatus = required_param('ischeckstatus', PARAM_BOOL);
-$cartid = required_param('cartid', PARAM_INT);
+$status = required_param('status', PARAM_RAW);
 
 if (!$context = context_system::instance()) {
     throw new moodle_exception('badcontext');
@@ -55,7 +50,7 @@ $PAGE->add_body_class('paygw_unisbg_checkout');
 echo $OUTPUT->header();
 
 $output = $PAGE->get_renderer('paygw_unisbg');
-$data = new checkout($itemid, $customer, $component, $paymentarea, $ischeckstatus, $cartid);
+$data = new checkout($status);
 
 echo $output->render_checkout($data);
 

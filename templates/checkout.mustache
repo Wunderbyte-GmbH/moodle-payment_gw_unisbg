@@ -30,23 +30,14 @@
     {}
 
 }}
-<div class="spinner-border" role="status">
-    <span class="sr-only">
-        {{#str}}
-            loading, paygw_unisbg
-        {{/str}}
-    </span>
+{{#status}}
+<div class="alert alert-success" role="alert">
+    {{#str}} successmessagepaymentinit, paygw_unisbg {{/str}}
 </div>
+{{/status}}
 
-{{#js}}
-    require(['paygw_unisbg/confirmpayment'], function(confirmpayment) {
-    confirmpayment.init(
-                        '{{itemid}}',
-                        '{{customer}}',
-                        '{{component}}',
-                        '{{paymentarea}}',
-                        '{{ischeckstatus}}',
-                        '{{cartid}}'
-                        );
-    });
-{{/js}}
+{{^status}}
+<div class="alert alert-danger" role="alert">
+    {{#str}} errormessagepaymentinit, paygw_unisbg {{/str}}
+</div>
+{{/status}}
