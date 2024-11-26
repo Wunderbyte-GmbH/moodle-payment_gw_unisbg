@@ -94,7 +94,7 @@ class unisbg_helper {
      * Please take a look to the O2P Documentation for options and fields of $paymentData
      *
      * @param array $data
-     * @return boolean
+     * @return mixed
      */
     public function init_transaction($data) {
         $headers = [
@@ -120,7 +120,7 @@ class unisbg_helper {
 
         if ($httpcode === 200 && strpos($contenttype, 'application/json') === 0) {
             $o2ptransaction = json_decode($response, true);
-            return $o2ptransaction['zahlungsurl'];
+            return $o2ptransaction;
         } else {
             echo "Failed to create transaction. HTTP Code: $httpcode";
         }
@@ -216,76 +216,14 @@ class unisbg_helper {
         return $response;
     }
 
-
-    /**
-     * Creates a checkout with the Provider given an array of items
-     *
-     * @param  array $items Array of items to be bought
-     * @return string $result Unformatted API result
-     */
-    public function create_checkout($items) {
-
-        $articles = [];
-        $now = time();
-        foreach ($items as $item) {
-            list($sku, $label) = explode(' - ', $item->itemname);
-
-            if (!empty($item->serviceperiodstart)) {
-                $performancebebgin = date('Y-m-d', $item->serviceperiodstart);
-            }
-            if (!empty($item->serviceperiodend)) {
-                $performanceend = date('Y-m-d', $item->serviceperiodend);
-            }
-
-            $singlearcticle = (object) [
-                "sku" => $sku ?? '',
-                "label" => $label ?? $sku ?? '',
-                "count" => 1,
-                "price_net" => $item->price,
-                "price_gross" => $item->price,
-                'tax_mark' => 'A0',
-                "vat_percent" => 0,
-                "vat_amount" => 0,
-                "spurious_exempt" => false,
-                "performance_begin" => $performancebebgin ?? date('Y-m-d', $now),
-                "performance_end" => $performanceend ?? date('Y-m-d', $now),
-                "account" => "441000", // Konto for USI.
-                "internal_order" => "AEP707000002", // Interalorder USI.
-                "user_variable" => "localIdentifierArticle",
-            ];
-            array_push($articles, $singlearcticle);
-        }
-
-        $obj = (object) [
-            "user_variable" => "localIdentifierCart",
-            "article" => $articles,
-
-        ];
-
-        $data = json_encode($obj);
-
-        $headers = ['Content-Type: application/json'];
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $this->baseurl . '/cart');
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
-        $result = curl_exec($ch);
-
-        $info = curl_getinfo($ch);
-        $error = curl_error($ch);
-
-        curl_close($ch);
-        return $result;
-    }
-
     /**
      * Creates a checkout with the Provider given an array of items
      * @param  float $amount
+     * @param  int $itemid
+     * @param  array $items
      * @return array $result Unformatted API result
      */
-    public function get_starttransaction_data($amount, $cartid) {
+    public function get_starttransaction_data($amount, $itemid, $items) {
         global $USER;
         $user = \core_user::get_user(10);
         if (true) {
@@ -307,8 +245,8 @@ class unisbg_helper {
         $transactiondata['betrag'] = $amount;
         $transactiondata['zahlungszweck'] = 17;
         $transactiondata['ip_adress'] = $user->lastip;
-        $transactiondata['zahlungsdetails'] = 'TBD';
-        $transactiondata['zahlungsreferenz'] = $cartid;
+        $transactiondata['zahlungsdetails'] = implode(',', array_keys($items));
+        $transactiondata['zahlungsreferenz'] = $itemid;
         $transactiondata['session_lang'] = $_SESSION['SESSION']->forcelang;
         return $transactiondata;
     }
@@ -318,7 +256,7 @@ class unisbg_helper {
      * @param  string $address
      * @return array|null
      */
-    function extractAddressParts($address) {
+    function extract_address_parts($address) {
         $pattern = '/^(\d+)?\s*([\w\s]+?)\s*(\d+)?$/';
         if (preg_match($pattern, $address, $matches)) {
             $housenumber = null;
@@ -329,7 +267,7 @@ class unisbg_helper {
                 // Format: "123 Main St".
                 $housenumber = $matches[1];
                 $streetname = trim($matches[2]);
-            } elseif (!empty($matches[3]) && is_numeric($matches[3])) {
+            } else if (!empty($matches[3]) && is_numeric($matches[3])) {
                 // Format: "Main St 123".
                 $housenumber = $matches[3];
                 $streetname = trim($matches[2]);

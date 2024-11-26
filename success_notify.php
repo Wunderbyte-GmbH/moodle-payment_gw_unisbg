@@ -26,15 +26,11 @@ defined('MOODLE_INTERNAL') || die();
 
 $encryptedpayload = optional_param('zahlungsdetails', '', PARAM_RAW);
 
-// Todo: decrypt.
+// Todo: Decrypt.
 
-// todo: via tid, return $itemmid & $userid from unisbg_openorderstable.
+// todo: Via tid, return $itemmid & $userid from unisbg_openorderstable.
 
-
-
-
-
-// Todo call moodle webservice on result SUCCESS.
+// Todo Call moodle webservice on result SUCCESS.
 
 $notifyurl = new \moodle_url(
   '/webservice/rest/server.php',
