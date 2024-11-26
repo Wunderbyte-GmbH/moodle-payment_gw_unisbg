@@ -50,42 +50,23 @@ const showModalWithPlaceholder = async() => {
  * @returns {Promise<string>}
  */
 export const process = (component, paymentArea, itemId, description) => {
+    // eslint-disable-next-line no-console
+    console.log('inside');
     return Promise.all([
             showModalWithPlaceholder(),
             Repository.getConfigForJs(component, paymentArea, itemId),
         ])
         .then(([modal, unisbgConfig]) => {
+            // eslint-disable-next-line no-console
+            console.log('inside');
             return Promise.all([
                 modal,
                 unisbgConfig,
             ]);
         })
         .then(([modal, unisbgConfig]) => {
-
-            const providersjson = JSON.parse(unisbgConfig.providerobject);
-            const optionsel = document.createElement('div');
-
-            const context = {
-                listofproviders: providersjson.object,
-                cartid: unisbgConfig.cartid,
-                component,
-                paymentarea: paymentArea,
-                itemid: itemId,
-            };
-
-            Templates.renderForPromise('paygw_unisbg/paymentoptions', context).then(({html, js}) => {
-
-                    modal.setBody(optionsel);
-
-                    // We need a minimal delay to make sure we run the js only after the modal has its body.
-                    setTimeout(() => {
-                        Templates.appendNodeContents(optionsel, html, js);
-                    }, 50);
-                    return true;
-                }).catch();
-
+            location.href = unisbgConfig.url;
             return '';
-
         }).then(x => {
             const promise = new Promise(resolve => {
                 window.addEventListener('onbeforeunload', (e) => {

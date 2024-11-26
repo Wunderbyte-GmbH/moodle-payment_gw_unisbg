@@ -7,10 +7,6 @@ const SELECTORS = {
 export const init = () => {
 
     const buttons = document.querySelectorAll(SELECTORS.PAYMENTOPTIONSBUTTONS);
-
-    // eslint-disable-next-line no-console
-    console.log(buttons);
-
     buttons.forEach(button => {
 
         if (button.initialized) {

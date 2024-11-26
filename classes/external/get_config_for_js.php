@@ -171,7 +171,7 @@ class get_config_for_js extends external_api {
             'rooturl' => $root,
             'environment' => $environment,
             'language' => $language,
-            'providerobject' => $provider,
+            'providerobject' => json_encode($provider),
             'cartid' => $itemid,
             'url' => $provider['zahlungsurl'],
         ];
@@ -194,6 +194,7 @@ class get_config_for_js extends external_api {
             'language' => new external_value(PARAM_TEXT, 'language'),
             'providerobject' => new external_value(PARAM_TEXT, 'providers'),
             'cartid' => new external_value(PARAM_INT, 'unique transaction id'),
+            'url' => new external_value(PARAM_TEXT, 'zahlungsurl'),
         ]);
     }
 }

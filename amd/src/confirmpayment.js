@@ -39,12 +39,9 @@ export const init = (itemid, customer, component, paymentarea, ischeckstatus, ti
             ischeckstatus
         },
         done: function(data) {
-
             if (data.success !== true) {
-
                 require(['jquery'], function($) {
                     require(['core/str'], function(str) {
-
                         var strings = [
                             {
                                 key: 'error',
@@ -84,7 +81,7 @@ export const init = (itemid, customer, component, paymentarea, ischeckstatus, ti
         },
         fail: function(ex) {
             // eslint-disable-next-line no-console
-            console.log("ex:" + ex);
+            console.log("exxx:" + ex);
         },
     }]);
 
