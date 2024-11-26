@@ -28,7 +28,7 @@ $encryptedpayload = optional_param('zahlungsdetails', '', PARAM_RAW);
 
 // Todo: Decrypt.
 
-// todo: Via tid, return $itemmid & $userid from unisbg_openorderstable.
+// Todo: Via tid, return $itemmid & $userid from unisbg_openorderstable.
 
 // Todo Call moodle webservice on result SUCCESS.
 

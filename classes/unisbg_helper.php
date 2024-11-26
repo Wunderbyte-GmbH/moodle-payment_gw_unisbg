@@ -29,7 +29,7 @@ defined('MOODLE_INTERNAL') || die();
 require_once("$CFG->dirroot/user/lib.php");
 require_once("$CFG->dirroot/user/profile/lib.php");
 require_once($CFG->libdir . '/filelib.php');
-include_once(dirname(__FILE__) . '/../config.php');
+require_once(dirname(__FILE__) . '/../config.php');
 
 /**
  * The payment_added event.
@@ -257,7 +257,7 @@ class unisbg_helper {
      * Returns the redirection urls
      * @return array
      */
-    function get_redirect_urls() {
+    public function get_redirect_urls() {
         return [
           'success_url' => SUCCESS_URL,
           'error_url' => ERROR_URL,
@@ -270,7 +270,7 @@ class unisbg_helper {
      * @param  string $address
      * @return array|null
      */
-    function extract_address_parts($address) {
+    public function extract_address_parts($address) {
         $pattern = '/^(\d+)?\s*([\w\s]+?)\s*(\d+)?$/';
         if (preg_match($pattern, $address, $matches)) {
             $housenumber = null;
