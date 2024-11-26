@@ -29,6 +29,7 @@ defined('MOODLE_INTERNAL') || die();
 require_once("$CFG->dirroot/user/lib.php");
 require_once("$CFG->dirroot/user/profile/lib.php");
 require_once($CFG->libdir . '/filelib.php');
+include_once(dirname(__FILE__) . '/../config.php');
 
 /**
  * The payment_added event.
@@ -110,7 +111,7 @@ class unisbg_helper {
         curl_setopt($ch, CURLOPT_TIMEOUT, 2);
         curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
         curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($data));
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, false);
 
         $response = curl_exec($ch);
@@ -226,8 +227,9 @@ class unisbg_helper {
     public function get_starttransaction_data($amount, $itemid, $items) {
         global $USER;
         $user = \core_user::get_user(10);
+        $transactiondata = $this->get_redirect_urls();
         if (true) {
-            $address = self::extractAddressParts($user->address);
+            $address = self::extract_address_parts($user->address);
             $transactiondata['ext_pers_id'] = $user->id;
             $transactiondata['extp_vorname'] = $user->firstname;
             $transactiondata['extp_nachname'] = $user->lastname;
@@ -249,6 +251,18 @@ class unisbg_helper {
         $transactiondata['zahlungsreferenz'] = $itemid;
         $transactiondata['session_lang'] = $_SESSION['SESSION']->forcelang;
         return $transactiondata;
+    }
+
+    /**
+     * Returns the redirection urls
+     * @return array
+     */
+    function get_redirect_urls() {
+        return [
+          'success_url' => SUCCESS_URL,
+          'error_url' => ERROR_URL,
+          'feedback_url' => FEEDBACK_URL,
+        ];
     }
 
     /**

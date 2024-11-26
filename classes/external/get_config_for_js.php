@@ -96,17 +96,18 @@ class get_config_for_js extends external_api {
         $items = shopping_cart_history::return_data_via_identifier($itemid);
 
         $ushelper = new unisbg_helper($environment, $secret);
-        $checkout = $ushelper->create_checkout($items);
-        $checkoutobj = json_decode($checkout);
-        $cartid = $checkoutobj->object->id;
 
         $now = time();
         $amount = helper::get_rounded_cost($payable->get_amount(), $payable->get_currency(), $surcharge);
-        $starttransactiondata = $ushelper->get_starttransaction_data($amount, $cartid);
+        $starttransactiondata = $ushelper->get_starttransaction_data(
+          $amount,
+          $itemid,
+          $items
+        );
         $provider = $ushelper->init_transaction($starttransactiondata);
 
         $record = new stdClass();
-        $record->tid = $cartid;
+        $record->tid = $provider['transactionID'];
         $record->itemid = $itemid;
         $record->userid = intval($USER->id);
         $record->status = 0;
@@ -125,12 +126,12 @@ class get_config_for_js extends external_api {
                 'userid' => $USER->id,
                 'objectid' => $id,
                 'other' => [
-                    'orderid' => $cartid,
+                    'orderid' => $itemid,
                 ],
             ]);
             $event->trigger();
         } else {
-            $cartid = $existingrecord->tid;
+            $itemid = $existingrecord->tid;
         }
 
         // Create task to check status.
@@ -152,9 +153,9 @@ class get_config_for_js extends external_api {
         $taskdata->customer = $config['clientid'];
         $taskdata->component = $component;
         $taskdata->paymentarea = $paymentarea;
-        $taskdata->tid = $cartid;
+        $taskdata->tid = $itemid;
         $taskdata->ischeckstatus = true;
-        $taskdata->cartid = $cartid;
+        $taskdata->cartid = $itemid;
         $taskdata->userid = $userid;
 
         $checkstatustask = new check_status();
@@ -173,6 +174,7 @@ class get_config_for_js extends external_api {
             'language' => $language,
             'providerobject' => $provider,
             'cartid' => $cartid,
+            'url' => $provider['zahlungsurl'],
         ];
     }
 
