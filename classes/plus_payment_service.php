@@ -20,15 +20,19 @@
  * @package paygw_unisbg
  * @copyright 2022 Georg Maißer <info@wunderbyte.at>
  * @license http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
-*/
+ */
 
 namespace paygw_unisbg;
+
+defined('MOODLE_INTERNAL') || die();
 
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 require_once(__DIR__ . '/../../../../config.php');
 require_once(__DIR__ . '/../config.php');
+use GuzzleHttp\Psr7\Response;
+
 
  /**
   * PLUS PaymentService Service
@@ -38,7 +42,7 @@ require_once(__DIR__ . '/../config.php');
   * @package clusterm
   * @author Dr. Jürgen Pfusterschmied
   */
- class plus_payment_service {
+class plus_payment_service {
      /**
       * Handling OZP Request send to the OZP FeedbackUrl using e.g. Middleware
       * See OZP Documentation ITABTK-FeedbackMeldungenbzgl.Zahlungsausgang-301219-0959-380.pdf
@@ -46,7 +50,7 @@ require_once(__DIR__ . '/../config.php');
       * @param array $headers
       * @return array
       */
-    public function handle_ozp_feedback($rawbodydata, $headers ) {
+    public function handle_ozp_feedback($rawbodydata, $headers) {
         ob_clean();
         $response = [
           'code' => 400,
@@ -55,93 +59,83 @@ require_once(__DIR__ . '/../config.php');
 
         // Handle Request.
         $cipherdata = $rawbodydata;
-        $ivH = $headers['X-Initialization-Vector'];
-        $zrH = $headers['X-Zahlungsdetails'];
-        $ozpId = base64_decode(hex2bin($zrH));
-        $iv = base64_decode(hex2bin($ivH));
+        $ivh = $headers['X-Initialization-Vector'];
+        $zrh = $headers['X-Zahlungsdetails'];
+        $ozpid = base64_decode(hex2bin($zrh));
+        $iv = base64_decode(hex2bin($ivh));
 
-        $encryptionMethod = ENCRYPTIONMETHOD;
+        $encryptionmethod = ENCRYPTIONMETHOD;
 
         // Checking Incoming Data.
-        if($ivH =='' || $zrH ==''){
+        if ($ivh == '' || $zrh == '') {
             $data['status'] = 'error';
             $data['msg'] = 'Input arguments missing';
         }
 
-        $decryptedMessage = openssl_decrypt(
+        $decryptedmessage = openssl_decrypt(
             base64_decode($cipherdata),
-            $encryptionMethod,
-            AESKEY ,
+            $encryptionmethod,
+            AESKEY,
             OPENSSL_RAW_DATA,
             $iv
         );
-        if ($decryptedMessage !== false){
-            try {
-                $txResponse = json_decode($decryptedMessage);
-                $data['title'] = 'OZP API';
-                $data['msg'] = 'Handshake completed! PLUS Payment Service Transaction finished.';
-                $data['txn'] = $txResponse->transactionID;
-                $data['status'] = $txResponse->result;
-                $data['ozpId'] = $ozpId;
-                $data['cipher'] = $cipherdata;
-                $data['ivH'] = $ivH;
-                $data['zrH'] = $zrH;
-                $data['iv'] = $iv;
-                $data['encryptionMethod'] = $encryptionMethod;
-                $response['info'] = $data;
-                $response['code'] = 200;
-                return $response;
-            }
-            catch (\Exception $e)
-            {
-                $response['info'] = $e->getMessage();
-                return $response;
-            }
+        if ($decryptedmessage !== false) {
+            $txeesponse = json_decode($decryptedmessage);
+            $data['title'] = 'OZP API';
+            $data['msg'] = 'Handshake completed! PLUS Payment Service Transaction finished.';
+            $data['txn'] = $txeesponse->transactionID;
+            $data['status'] = $txeesponse->result;
+            $data['ozpId'] = $ozpid;
+            $data['cipher'] = $cipherdata;
+            $data['ivH'] = $ivh;
+            $data['zrH'] = $zrh;
+            $data['iv'] = $iv;
+            $data['encryptionMethod'] = $encryptionmethod;
+            $response['info'] = $data;
+            $response['code'] = 200;
+            return $response;
         }
         return $response;
     }
 
     /**
-      * Return success feedback
-      * @param array $data
-      * @return \GuzzleHttp\Psr7\Response
-      */
-      public function return_success($data)
-      {
-          return new \GuzzleHttp\Psr7\Response(
-              200,
-              ['Content-Type' => 'application/json'],
-              $data
-          );
-      }
+     * Return success feedback
+     * @param array $data
+     * @return \GuzzleHttp\Psr7\Response
+     */
+    public function return_success_responde($data) {
+        return new Response(
+            200,
+            ['Content-Type' => 'application/json'],
+            $data
+        );
+    }
 
-      /**
-      * Return error feedback
-      * @param string $e
-      * @return \GuzzleHttp\Psr7\Response
-      */
-      public function return_error($e)
-      {
-          return new \GuzzleHttp\Psr7\Response(
+    /**
+     * Return error feedback
+     * @param string $e
+     * @return \GuzzleHttp\Psr7\Response
+     */
+    public function return_error_responde($e) {
+        return new Response(
             400,
             ['Content-Type' => 'application/json'],
             $e
         );
-      }
+    }
 
-      /**
-      * Return success feedback
-      * @param string $tid
-      * @return object
-      */
-      public function get_completedtransation($tid)
-      {
-          global $DB;
-          $select = "SELECT openorders.itemid, openorders.tid, openorders.userid, history.componentname, history.area";
-          $from = "FROM {paygw_unisbg_openorders} openorders";
-          $join = "INNER JOIN {local_shopping_cart_history} history ON history.identifier = openorders.id";
-          $where = "WHERE openorders.tid = :tid ORDER BY history.id ASC LIMIT 1";
-          $params = ['tid' => $tid];
-          return $DB->get_record_sql($select . $from . $join . $where, $params);
-      }
- }
+    /**
+     * Returns completedtransation
+     * @param string $tid
+     * @return object
+     */
+    public function get_completed_transation($tid) {
+        global $DB;
+        $select = "SELECT openorders.itemid, openorders.tid, openorders.userid, history.componentname as component, history.area as paymentarea";
+        $from = "FROM {paygw_unisbg_openorders} openorders";
+        $join = "INNER JOIN {local_shopping_cart_history} history ON history.identifier = openorders.id";
+        $where = "WHERE openorders.tid = :tid ORDER BY history.id ASC LIMIT 1";
+        $params = ['tid' => $tid];
+        return $DB->get_record_sql($select . $from . $join . $where, $params);
+    }
+}

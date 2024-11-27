@@ -31,66 +31,62 @@ use core_payment\helper;
 use core_payment\helper as payment_helper;
 use paygw_unisbg\event\delivery_error;
 use paygw_unisbg\event\payment_completed;
-use paygw_unisbg\event\payment_error;
 use paygw_unisbg\event\payment_successful;
-use local_shopping_cart\interfaces\interface_transaction_complete;
-use paygw_unisbg\interfaces\interface_transaction_complete as ug_interface_transaction_complete;
 
 defined('MOODLE_INTERNAL') || die();
 
 require_once($CFG->libdir . '/externallib.php');
 
-if (!interface_exists(interface_transaction_complete::class)) {
-    class_alias(ug_interface_transaction_complete::class, interface_transaction_complete::class);
-}
-
 /**
  * Transaction complete class.
  */
-class transaction_complete  {
+class transaction_complete {
     /**
      * Perform what needs to be done when a transaction is reported to be complete.
      * This function does not take cost as a parameter as we cannot rely on any provided value.
      *
-     * @param string $component Name of the component that the itemid belongs to
-     * @param string $paymentarea payment area
-     * @param int $itemid An internal identifier that is used by the component
-     * @param string $tid unique transaction id
-     * @param int $userid
+     * @param object $completedtransation Name of the component that the itemid belongs to
      * @return array
      */
     public static function trigger_execution(
-        string $component,
-        string $paymentarea,
-        int $itemid,
-        string $tid = '',
-        int $userid = 0
+        object $completedtransation
     ): array {
 
         global $USER, $DB, $CFG, $DB;
 
-        $payable = payment_helper::get_payable($component, $paymentarea, $itemid);
-        $currency = $payable->get_currency();
+        if (empty($completedtransation)) {
+            // Purchase already stored.
+            $success = false;
+            $message = get_string('internalerror', 'paygw_unisbg');
+        } else {
+            $payable = payment_helper::get_payable(
+                $completedtransation->component,
+                $completedtransation->paymentarea,
+                $completedtransation->itemid
+            );
+            $currency = $payable->get_currency();
 
-        // Add surcharge if there is any.
-        $surcharge = helper::get_gateway_surcharge('unisbg');
-        $amount = helper::get_rounded_cost($payable->get_amount(), $currency, $surcharge);
+            // Add surcharge if there is any.
+            $surcharge = helper::get_gateway_surcharge('unisbg');
+            $amount = helper::get_rounded_cost(
+                $payable->get_amount(),
+                $currency,
+                $surcharge
+            );
 
-        $successurl = helper::get_success_url($component, $paymentarea, $itemid)->__toString();
-        $success = false;
-        $message = '';
-        $status = 'success';
+            $url = helper::get_success_url(
+                $completedtransation->component,
+                $completedtransation->paymentarea,
+                $completedtransation->itemid
+            )->__toString();
 
-        if ($status == 'success') {
-            $url = $successurl;
+            $message = '';
             $success = true;
 
-            // Check if order is existing. shoppingcarthistory
-
-            $checkorder = $DB->get_record('paygw_unisbg_openorders', [['tid' => $tid, 'itemid' => $itemid,
-            'userid' => intval($USER->id)]]);
-
-            $existingdata = $DB->get_record('paygw_unisbg', ['unisbg_orderid' => $tid]);
+            $existingdata = $DB->get_record(
+                'paygw_unisbg',
+                ['unisbg_orderid' => $completedtransation->tid]
+            );
 
             if (!empty($existingdata)) {
                 return [
@@ -100,95 +96,83 @@ class transaction_complete  {
                 ];
             }
 
-            if (empty($checkorder)) {
-                // Purchase already stored.
+            try {
+                $paymentid = payment_helper::save_payment(
+                    $payable->get_account_id(),
+                    $completedtransation->component,
+                    $completedtransation->paymentarea,
+                    $completedtransation->itemid,
+                    (int) $USER->id,
+                    $amount,
+                    $currency,
+                    'unisbg'
+                );
+
+                $record = new \stdClass();
+                $record->paymentid = $paymentid;
+                $record->unisbg_orderid = $completedtransation->tid;
+                $record->paymentbrand = 'unknown';
+                $record->pboriginal = 'unknown';
+
+                $DB->insert_record('paygw_unisbg', $record);
+
+                // Set status in open_orders to complete.
+                if (
+                    $existingrecord = $DB->get_record(
+                        'paygw_unisbg_openorders',
+                        ['tid' => $completedtransation->tid]
+                    )
+                ) {
+                    $existingrecord->status = 3;
+                    $DB->update_record('paygw_unisbg_openorders', $existingrecord);
+
+                    // We trigger the payment_completed event.
+                    $context = context_system::instance();
+                    $event = payment_completed::create([
+                        'context' => $context,
+                        'userid' => $completedtransation->userid,
+                        'other' => [
+                            'orderid' => $completedtransation->tid,
+                        ],
+                    ]);
+                    $event->trigger();
+                }
+
+                // We trigger the payment_successful event.
+                $context = context_system::instance();
+                $event = payment_successful::create(['context' => $context, 'other' => [
+                    'message' => $message,
+                    'orderid' => $completedtransation->tid,
+                ]]);
+                $event->trigger();
+
+                // If the delivery was not successful, we trigger an event.
+                if (
+                    !payment_helper::deliver_order(
+                        $completedtransation->component,
+                        $completedtransation->paymentarea,
+                        $completedtransation->itemid,
+                        $paymentid,
+                        (int) $completedtransation->userid
+                    )
+                ) {
+                    $context = context_system::instance();
+                    $event = delivery_error::create(
+                        [
+                          'context' => $context, 'other' =>
+                          [
+                            'message' => $message,
+                            'orderid' => $completedtransation->tid,
+                          ],
+                        ]
+                    );
+                    $event->trigger();
+                }
+            } catch (\Exception $e) {
+                debugging('Exception while trying to process payment: ' . $e->getMessage(), DEBUG_DEVELOPER);
                 $success = false;
                 $message = get_string('internalerror', 'paygw_unisbg');
-            } else {
-                try {
-                    $paymentid = payment_helper::save_payment(
-                        $payable->get_account_id(),
-                        $component,
-                        $paymentarea,
-                        $itemid,
-                        (int) $USER->id,
-                        $amount,
-                        $currency,
-                        'unisbg'
-                    );
-
-                    $record = new \stdClass();
-                    $record->paymentid = $paymentid;
-                    $record->unisbg_orderid = $tid;
-
-                    $record->paymentbrand = 'unknown';
-                    $record->pboriginal = 'unknown';
-
-                    $DB->insert_record('paygw_unisbg', $record);
-
-                    // Set status in open_orders to complete.
-                    if (
-                        $existingrecord = $DB->get_record(
-                            'paygw_unisbg_openorders',
-                            ['tid' => $tid]
-                        )
-                    ) {
-                        $existingrecord->status = 3;
-                        $DB->update_record('paygw_unisbg_openorders', $existingrecord);
-
-                        // We trigger the payment_completed event.
-                        $context = context_system::instance();
-                        $event = payment_completed::create([
-                            'context' => $context,
-                            'userid' => $userid,
-                            'other' => [
-                                'orderid' => $tid,
-                            ],
-                        ]);
-                        $event->trigger();
-                    }
-
-                    // We trigger the payment_successful event.
-                    $context = context_system::instance();
-                    $event = payment_successful::create(['context' => $context, 'other' => [
-                        'message' => $message,
-                        'orderid' => $tid,
-                    ]]);
-                    $event->trigger();
-
-                    // The order is delivered.
-                    // If the delivery was not successful, we trigger an event.
-                    if (!payment_helper::deliver_order($component, $paymentarea, $itemid, $paymentid, (int) $userid)) {
-                        $context = context_system::instance();
-                        $event = delivery_error::create(
-                            [
-                              'context' => $context, 'other' =>
-                              [
-                                'message' => $message,
-                                'orderid' => $tid,
-                              ],
-                            ]
-                        );
-                        $event->trigger();
-                    }
-
-                    // Delete transaction after its been delivered.
-                } catch (\Exception $e) {
-                    debugging('Exception while trying to process payment: ' . $e->getMessage(), DEBUG_DEVELOPER);
-                    $success = false;
-                    $message = get_string('internalerror', 'paygw_unisbg');
-                }
             }
-        } else if ($status == 'error') {
-            // We trigger the payment_successful event.
-            $context = context_system::instance();
-            $event = payment_error::create(['context' => $context, 'other' => [
-                'message' => $message,
-                'orderid' => $tid,
-                'itemid' => $itemid,
-                'component' => $component,
-                'paymentarea' => $paymentarea]]);
-            $event->trigger();
         }
 
         return [
@@ -196,56 +180,5 @@ class transaction_complete  {
             'success' => $success,
             'message' => $message,
         ];
-    }
-
-    /**
-     * Trigger the webservice.
-     *
-     * @param int $itemid An internal identifier that is used by the component
-     * @param string $tid unique transaction id
-     * @param int $userid
-     * @return array
-     */
-    public static function trigger_transaction_completed_webservice(
-        int $itemid,
-        string $tid = '',
-        int $userid = 0
-    ): array {
-        $notifyurl = new \moodle_url(
-          '/webservice/rest/server.php',
-          [
-              'wsfunction' => 'local_shopping_cart_verify_purchase',
-              'wstoken' => get_config('paygw_unisbg', 'tokenforverification'),
-              'moodlewsrestformat' => 'json',
-              'identifier' => $itemid,
-              'tid' => $tid,
-              'paymentgateway' => 'unisbg',
-              'userid' => $userid,
-          ]
-        );
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $notifyurl->out(false));
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_HEADER, false);
-
-        $response = curl_exec($ch);
-        if (curl_errno($ch)) {
-            throw new \moodle_exception('webservice_call_failed', 'error', '', curl_error($ch));
-        }
-
-        $httpcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
-
-        if ($httpcode !== 200) {
-            throw new \moodle_exception('webservice_call_failed', 'error', '', 'Invalid HTTP response: ' . $httpcode);
-        }
-
-        // Decode the JSON response
-        $decodedResponse = json_decode($response, true);
-        if (json_last_error() !== JSON_ERROR_NONE) {
-            throw new \moodle_exception('webservice_call_failed', 'error', '', 'Invalid JSON response');
-        }
-
-        return $decodedResponse;
     }
 }
