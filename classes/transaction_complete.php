@@ -85,7 +85,7 @@ class transaction_complete  {
             $url = $successurl;
             $success = true;
 
-            // Check if order is existing.
+            // Check if order is existing. shoppingcarthistory
 
             $checkorder = $DB->get_record('paygw_unisbg_openorders', [['tid' => $tid, 'itemid' => $itemid,
             'userid' => intval($USER->id)]]);

@@ -30,15 +30,24 @@ use paygw_unisbg\transaction_complete;
 ;
 
 $rawbodydata = file_get_contents('php://input');
-// Check if an incomming ozp feedback exists
-if(!empty($rawbodydata)){
+$headers = getallheaders();
+// Check if an incomming ozp feedback exists.
+if (!empty($rawbodydata)) {
     $pluspaymentservice = new plus_payment_service();
     $transactioncomplete = new transaction_complete();
     // Todo: Decrypt.
-    $responsecodeanddata = $pluspaymentservice->handle_ozp_feedback($rawbodydata);
-    // Todo: Via tid, return $itemmid & $userid from unisbg_openorderstable
-    //$transactioncomplete->trigger_execution(component, paymentarea, itemid, tid, userid);
-    // Todo Call moodle webservice on result SUCCESS.
-    //$transactioncomplete->trigger_transaction_completed_webservice(itemid, tid, userid);
+    $responsecodeanddata = $pluspaymentservice->handle_ozp_feedback(
+        $rawbodydata,
+        $headers
+    );
+    if (
+      isset($responsecodeanddata['info']['status']) &&
+      $responsecodeanddata['info']['status'] == 'SUCCESS'
+    ) {
+
+          $checkorder = $DB->get_record('paygw_unisbg_openorders', ['tid' => $tid]);
+        // Todo: Via tid, return $itemmid & $userid from unisbg_openorderstable.
+        $transactioncomplete->trigger_execution(component, paymentarea, itemid, tid, userid);
+    }
     $testing = 'end';
 }

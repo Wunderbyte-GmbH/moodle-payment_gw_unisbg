@@ -43,22 +43,23 @@ require_once(__DIR__ . '/../config.php');
       * Handling OZP Request send to the OZP FeedbackUrl using e.g. Middleware
       * See OZP Documentation ITABTK-FeedbackMeldungenbzgl.Zahlungsausgang-301219-0959-380.pdf
       * @param string $rawbodydata
+      * @param array $headers
       * @return array
       */
-    public function handle_ozp_feedback( $rawbodydata ) {
+    public function handle_ozp_feedback($rawbodydata, $headers ) {
         ob_clean();
         $response = [
           'code' => 400,
-          'info' => 'unkonwn decryptedMessage',
+          'info' => 'unkonwn decrypted message',
         ];
-        $data['title'] = 'OZP API';
 
         // Handle Request.
-        $cipher = $rawbodydata;
-        $ivH = $_SERVER['HTTP_X_INITIALIZATION_VECTOR'];
-        $zrH = $_SERVER['HTTP_X_ZAHLUNGSDETAILS'];
+        $cipherdata = $rawbodydata;
+        $ivH = $headers['X-Initialization-Vector'];
+        $zrH = $headers['X-Zahlungsdetails'];
         $ozpId = base64_decode(hex2bin($zrH));
         $iv = base64_decode(hex2bin($ivH));
+
         $encryptionMethod = ENCRYPTIONMETHOD;
 
         // Checking Incoming Data.
@@ -68,25 +69,27 @@ require_once(__DIR__ . '/../config.php');
         }
 
         $decryptedMessage = openssl_decrypt(
-            base64_decode($cipher),
+            base64_decode($cipherdata),
             $encryptionMethod,
             AESKEY ,
             OPENSSL_RAW_DATA,
             $iv
         );
-        if ($decryptedMessage === false){
+        if ($decryptedMessage !== false){
             try {
                 $txResponse = json_decode($decryptedMessage);
+                $data['title'] = 'OZP API';
                 $data['msg'] = 'Handshake completed! PLUS Payment Service Transaction finished.';
                 $data['txn'] = $txResponse->transactionID;
                 $data['status'] = $txResponse->result;
                 $data['ozpId'] = $ozpId;
-                $data['cipher'] = $cipher;
+                $data['cipher'] = $cipherdata;
                 $data['ivH'] = $ivH;
                 $data['zrH'] = $zrH;
                 $data['iv'] = $iv;
                 $data['encryptionMethod'] = $encryptionMethod;
                 $response['info'] = $data;
+                $response['code'] = 200;
                 return $response;
             }
             catch (\Exception $e)
@@ -124,5 +127,21 @@ require_once(__DIR__ . '/../config.php');
             ['Content-Type' => 'application/json'],
             $e
         );
+      }
+
+      /**
+      * Return success feedback
+      * @param string $tid
+      * @return object
+      */
+      public function get_completedtransation($tid)
+      {
+          global $DB;
+          $select = "SELECT openorders.itemid, openorders.tid, openorders.userid, history.componentname, history.area";
+          $from = "FROM {paygw_unisbg_openorders} openorders";
+          $join = "INNER JOIN {local_shopping_cart_history} history ON history.identifier = openorders.id";
+          $where = "WHERE openorders.tid = :tid ORDER BY history.id ASC LIMIT 1";
+          $params = ['tid' => $tid];
+          return $DB->get_record_sql($select . $from . $join . $where, $params);
       }
  }
