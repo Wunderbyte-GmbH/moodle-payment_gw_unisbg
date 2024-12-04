@@ -45,12 +45,11 @@ if (!empty($rawbodydata)) {
             isset($responsecodeanddata['info']['status']) &&
             $responsecodeanddata['info']['status'] == 'SUCCESS'
         ) {
-              $completedtransation = $pluspaymentservice->get_completed_transaction($responsecodeanddata['info']['txn']);
-              if ($completedtransation) {
-                  // Todo: Via tid, return $itemmid & $userid from unisbg_openorderstable.
-                  $transactioncomplete->trigger_execution($completedtransation);
-                  $pluspaymentservice->return_success_responde($responsecodeanddata['info']);
-              }
+            $completedtransation = $pluspaymentservice->get_completed_transaction($responsecodeanddata['info']['txn']);
+            if ($completedtransation) {
+                $transactioncomplete->trigger_execution($completedtransation);
+                $pluspaymentservice->return_success_responde($responsecodeanddata['info']);
+            }
         }
     } catch (Exception $e) {
         $pluspaymentservice->return_error_responde($e->getMessage());
