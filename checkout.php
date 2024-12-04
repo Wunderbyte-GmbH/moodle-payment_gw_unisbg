@@ -22,6 +22,7 @@
  * @license http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+use local_shopping_cart\local\cartstore;
 use paygw_unisbg\output\checkout;
 
 require_once(__DIR__ . '/../../../config.php');
@@ -34,7 +35,10 @@ $status = required_param('status', PARAM_RAW);
 if (!$context = context_system::instance()) {
     throw new moodle_exception('badcontext');
 }
-
+if ($status == 1) {
+    $cartstore = cartstore::instance($USER->id);
+    $cartstore->delete_all_items();
+}
 // Check if optionid is valid.
 $PAGE->set_context($context);
 

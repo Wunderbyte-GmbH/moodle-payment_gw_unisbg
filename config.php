@@ -26,7 +26,7 @@ defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
 define('SUCCESS_URL', $CFG->wwwroot . '/payment/gateway/unisbg/checkout.php?status=1');
-define('ERROR_URL', $CFG->wwwroot . '/payment/gateway/unisbg/checkout.php?status=1');
+define('ERROR_URL', $CFG->wwwroot . '/payment/gateway/unisbg/checkout.php?status=0');
 define('FEEDBACK_URL', $CFG->wwwroot . '/payment/gateway/unisbg/success_notify.php');
 define('ENCRYPTIONMETHOD', 'aes-256-cbc');
 define('AESKEY', '2325DC7118BAE579C696E88EC0DB430A');

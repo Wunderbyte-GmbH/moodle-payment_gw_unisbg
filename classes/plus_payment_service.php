@@ -30,6 +30,7 @@ ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 require_once(__DIR__ . '/../../../../config.php');
+require_once($CFG->dirroot . '/vendor/autoload.php');
 require_once(__DIR__ . '/../config.php');
 use GuzzleHttp\Psr7\Response;
 
@@ -107,7 +108,7 @@ class plus_payment_service {
         return new Response(
             200,
             ['Content-Type' => 'application/json'],
-            $data
+            json_encode($data)
         );
     }
 
@@ -129,13 +130,21 @@ class plus_payment_service {
      * @param string $tid
      * @return object
      */
-    public function get_completed_transation($tid) {
+    public function get_completed_transaction($tid) {
         global $DB;
-        $select = "SELECT openorders.itemid, openorders.tid, openorders.userid, history.componentname as component, history.area as paymentarea";
-        $from = "FROM {paygw_unisbg_openorders} openorders";
-        $join = "INNER JOIN {local_shopping_cart_history} history ON history.identifier = openorders.id";
-        $where = "WHERE openorders.tid = :tid ORDER BY history.id ASC LIMIT 1";
+        $sql = "
+            SELECT
+                openorders.itemid,
+                openorders.tid,
+                openorders.userid,
+                'local_shopping_cart' as component,
+                '' as paymentarea
+            FROM
+                {paygw_unisbg_openorders} openorders
+            WHERE
+                openorders.tid = :tid
+        ";
         $params = ['tid' => $tid];
-        return $DB->get_record_sql($select . $from . $join . $where, $params);
+        return $DB->get_record_sql($sql, $params);
     }
 }

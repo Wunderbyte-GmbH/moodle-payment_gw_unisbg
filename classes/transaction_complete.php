@@ -62,7 +62,7 @@ class transaction_complete {
             $payable = payment_helper::get_payable(
                 $completedtransation->component,
                 $completedtransation->paymentarea,
-                $completedtransation->itemid
+                (int) $completedtransation->itemid
             );
             $currency = $payable->get_currency();
 
@@ -77,7 +77,7 @@ class transaction_complete {
             $url = helper::get_success_url(
                 $completedtransation->component,
                 $completedtransation->paymentarea,
-                $completedtransation->itemid
+                (int) $completedtransation->itemid
             )->__toString();
 
             $message = '';
@@ -101,7 +101,7 @@ class transaction_complete {
                     $payable->get_account_id(),
                     $completedtransation->component,
                     $completedtransation->paymentarea,
-                    $completedtransation->itemid,
+                    (int) $completedtransation->itemid,
                     (int) $USER->id,
                     $amount,
                     $currency,
@@ -151,7 +151,7 @@ class transaction_complete {
                     !payment_helper::deliver_order(
                         $completedtransation->component,
                         $completedtransation->paymentarea,
-                        $completedtransation->itemid,
+                        (int) $completedtransation->itemid,
                         $paymentid,
                         (int) $completedtransation->userid
                     )

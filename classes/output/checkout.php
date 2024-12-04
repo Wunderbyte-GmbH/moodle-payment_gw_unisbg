@@ -44,7 +44,9 @@ class checkout implements renderable, templatable {
      * In the Constructor, we gather all the data we need ans store it in the data property.
      */
     public function __construct($status) {
+        global $CFG;
         $this->data['status'] = $status;
+        $this->data['courseoverviewurl'] = $CFG->wwwroot . '/my';
     }
 
     /**

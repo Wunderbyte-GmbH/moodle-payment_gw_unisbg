@@ -77,3 +77,4 @@ $string['unknownaddress'] = "Unbekannte Adresse";
 $string['tokenforverification'] = "Token für Verifikation";
 $string['successmessagepaymentinit'] = "Bezahlvorgang wurde erfolgreich initialisiert. Der Einkauf steht in Kürze zur Verfügung.";
 $string['errormessagepaymentinit'] = "Bezahlvorgang wurde abgebrochen.";
+$string['backtocourseoverview'] = "Zurück zur Kursübersicht";

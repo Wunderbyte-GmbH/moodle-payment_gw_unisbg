@@ -88,14 +88,17 @@ class get_config_for_js extends external_api {
         $surcharge = helper::get_gateway_surcharge('unisbg');
 
         $language = $USER->lang;
-        $secret = $config['secret'];
+        $secret = get_config('paygw_unisbg', 'tokenforverification');
         $root = $CFG->wwwroot;
         $environment = $config['environment'];
 
         // Get all items from shoppingcart.
         $items = shopping_cart_history::return_data_via_identifier($itemid);
 
-        $ushelper = new unisbg_helper($environment, $secret);
+        $ushelper = new unisbg_helper(
+            $environment,
+            $secret
+          );
 
         $now = time();
         $amount = helper::get_rounded_cost($payable->get_amount(), $payable->get_currency(), $surcharge);

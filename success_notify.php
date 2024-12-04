@@ -22,7 +22,7 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-defined('MOODLE_INTERNAL') || die();
+require_once(__DIR__ . '/../../../config.php');
 require_once(__DIR__ . '/classes/plus_payment_service.php');
 require_once(__DIR__ . '/classes/transaction_complete.php');
 
@@ -45,10 +45,12 @@ if (!empty($rawbodydata)) {
             isset($responsecodeanddata['info']['status']) &&
             $responsecodeanddata['info']['status'] == 'SUCCESS'
         ) {
-              $completedtransation = $pluspaymentservice->get_completed_transation($responsecodeanddata['info']['txn']);
-              // Todo: Via tid, return $itemmid & $userid from unisbg_openorderstable.
-              $transactioncomplete->trigger_execution($completedtransation);
-              $pluspaymentservice->return_success_responde($responsecodeanddata['info']);
+              $completedtransation = $pluspaymentservice->get_completed_transaction($responsecodeanddata['info']['txn']);
+              if ($completedtransation) {
+                  // Todo: Via tid, return $itemmid & $userid from unisbg_openorderstable.
+                  $transactioncomplete->trigger_execution($completedtransation);
+                  $pluspaymentservice->return_success_responde($responsecodeanddata['info']);
+              }
         }
     } catch (Exception $e) {
         $pluspaymentservice->return_error_responde($e->getMessage());
