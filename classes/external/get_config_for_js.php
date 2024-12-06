@@ -35,6 +35,7 @@ use external_function_parameters;
 use external_value;
 use external_single_structure;
 use local_shopping_cart\shopping_cart_history;
+use moodle_exception;
 use paygw_unisbg\event\payment_added;
 use paygw_unisbg\task\check_status;
 use stdClass;
@@ -98,14 +99,14 @@ class get_config_for_js extends external_api {
         $ushelper = new unisbg_helper(
             $environment,
             $secret
-          );
+        );
 
         $now = time();
         $amount = helper::get_rounded_cost($payable->get_amount(), $payable->get_currency(), $surcharge);
         $starttransactiondata = $ushelper->get_starttransaction_data(
-          $amount,
-          $itemid,
-          $items
+            $amount,
+            $itemid,
+            $items
         );
         $provider = $ushelper->init_transaction($starttransactiondata);
 

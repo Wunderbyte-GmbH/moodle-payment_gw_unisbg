@@ -50,33 +50,30 @@ const showModalWithPlaceholder = async() => {
  * @returns {Promise<string>}
  */
 export const process = (component, paymentArea, itemId, description) => {
-    // eslint-disable-next-line no-console
-    console.log('inside');
     return Promise.all([
             showModalWithPlaceholder(),
             Repository.getConfigForJs(component, paymentArea, itemId),
         ])
         .then(([modal, unisbgConfig]) => {
-            // eslint-disable-next-line no-console
-            console.log('insideeeee');
             return Promise.all([
                 modal,
                 unisbgConfig,
             ]);
         })
         .then(([modal, unisbgConfig]) => {
-          console.log('unisbgConfig');
-
             location.href = unisbgConfig.url;
             return '';
         }).then(x => {
-          console.log('then(x');
-
             const promise = new Promise(resolve => {
                 window.addEventListener('onbeforeunload', (e) => {
                     promise.resolve();
                 });
             });
             return promise;
+        })
+        .catch(error => {
+            // eslint-disable-next-line no-console
+            console.error('Error processing payment:', error);
+            throw error;
         });
 };

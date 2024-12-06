@@ -65,30 +65,6 @@ class unisbg_helper {
     }
 
     /**
-     * Returns List of available prodivers for this gateway.
-     * @param  array $data shoppingcart id
-     * @return string
-     */
-    public function inittt_transaction($data) {
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $this->baseurl);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            'Authorization: Bearer ' . $this->accesstoken,
-            'Content-Type: application/json',
-        ]);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
-        $responsedata = curl_exec($ch);
-
-        if (curl_errno($ch)) {
-            return curl_error($ch);
-        }
-        curl_close($ch);
-        return $responsedata;
-    }
-
-    /**
      * PLUS O2P Transaction URI Builder
      * Creates a new Transaction in the O2P
      * Create a URI to the O2P Webportal to process the payment
