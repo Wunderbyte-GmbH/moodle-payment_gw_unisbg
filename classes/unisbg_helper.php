@@ -122,10 +122,8 @@ class unisbg_helper {
         if ($httpcode === 200 && strpos($contenttype, 'application/json') === 0) {
             $o2ptransaction = json_decode($response, true);
             return $o2ptransaction;
-        } else {
-            echo "Failed to create transaction. HTTP Code: $httpcode";
         }
-        return false;
+        return $httpcode;
     }
 
 
@@ -226,19 +224,18 @@ class unisbg_helper {
      */
     public function get_starttransaction_data($amount, $itemid, $items) {
         global $USER;
-        $user = \core_user::get_user(10);
         $transactiondata = $this->get_redirect_urls();
         if (true) {
-            $address = self::extract_address_parts($user->address);
-            $transactiondata['ext_pers_id'] = $user->id;
-            $transactiondata['extp_vorname'] = $user->firstname;
-            $transactiondata['extp_nachname'] = $user->lastname;
+            $address = self::extract_address_parts($USER->address);
+            $transactiondata['ext_pers_id'] = $USER->id;
+            $transactiondata['extp_vorname'] = $USER->firstname;
+            $transactiondata['extp_nachname'] = $USER->lastname;
             $transactiondata['extp_strasse'] = $address['name'] ?? null;
             $transactiondata['extp_hausnummer'] = $address['number'] ?? null;
-            $transactiondata['extp_stadt'] = $user->city ?? null;
+            $transactiondata['extp_stadt'] = $USER->city ?? null;
             $transactiondata['extp_plz'] = '5020';
-            $transactiondata['extp_land_iso'] = $user->country ?? null;
-            $transactiondata['extp_mail'] = $user->email ?? null;
+            $transactiondata['extp_land_iso'] = $USER->country ?? null;
+            $transactiondata['extp_mail'] = $USER->email ?? null;
         } else if (false) {
             $transactiondata['stud_pers_id'] = '1';
         } else {
@@ -246,7 +243,7 @@ class unisbg_helper {
         }
         $transactiondata['betrag'] = $amount;
         $transactiondata['zahlungszweck'] = 17;
-        $transactiondata['ip_adress'] = $user->lastip;
+        $transactiondata['ip_adress'] = $USER->lastip;
         $transactiondata['zahlungsdetails'] = implode(',', array_keys($items));
         $transactiondata['zahlungsreferenz'] = $itemid;
         $transactiondata['session_lang'] = $_SESSION['SESSION']->forcelang;
