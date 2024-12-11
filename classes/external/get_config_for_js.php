@@ -95,11 +95,7 @@ class get_config_for_js extends external_api {
 
         // Get all items from shoppingcart.
         $items = shopping_cart_history::return_data_via_identifier($itemid);
-
-        $ushelper = new unisbg_helper(
-            $environment,
-            $secret
-        );
+        $ushelper = new unisbg_helper($environment);
 
         $now = time();
         $amount = helper::get_rounded_cost($payable->get_amount(), $payable->get_currency(), $surcharge);
@@ -109,6 +105,10 @@ class get_config_for_js extends external_api {
             $items
         );
         $provider = $ushelper->init_transaction($starttransactiondata);
+        if ($provider == '401' || $provider == '500') {
+            $ushelper->set_access_token($config);
+            $provider = $ushelper->init_transaction($starttransactiondata);
+        }
 
         $record = new stdClass();
         $record->tid = $provider['transactionID'];

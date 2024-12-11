@@ -45,6 +45,10 @@ class unisbg_helper {
      */
     private $baseurl;
     /**
+     * @var string base URL
+     */
+    private $oauthurl;
+    /**
      * @var string ws accesstoken
      */
     private $accesstoken;
@@ -55,12 +59,14 @@ class unisbg_helper {
      * @param string $secret unisbg secret.
      * @param string $environment Whether we are working with the sandbox environment or not.
      */
-    public function __construct($environment, string $secret) {
-        $this->accesstoken = $secret;
+    public function __construct($environment) {
+        $this->accesstoken = self::get_cached_variable();
         if ($environment == 'sandbox') {
             $this->baseurl = 'https://axqual.sbg.ac.at/ords/ax_app_online_zahlung/init/starttransaction';
+            $this->oauthurl = 'https://axqual.sbg.ac.at/ords/ax_app_online_zahlung/oauth/token';
         } else {
             $this->baseurl = 'https://axapp.sbg.ac.at/ords/ax_app_online_zahlung/init/starttransaction';
+            $this->oauthurl = 'https://axapp.sbg.ac.at/ords/ax_app_online_zahlung/oauth/token';
         }
     }
 
@@ -79,9 +85,7 @@ class unisbg_helper {
             'Accept: application/json',
             'Authorization: Bearer ' . $this->accesstoken,
         ];
-
         $ch = curl_init();
-
         curl_setopt($ch, CURLOPT_URL, $this->baseurl);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_TIMEOUT, 2);
@@ -102,7 +106,45 @@ class unisbg_helper {
         return $httpcode;
     }
 
+    /**
+     * Set a new access token
+     * @param array $config
+     *
+     */
+    public function set_access_token($config) {
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $this->oauthurl);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, "grant_type=client_credentials");
+        curl_setopt($ch, CURLOPT_USERPWD, $config['clientid'] . ':' . $config['secret']);
+        $response = curl_exec($ch);
+        $responseData = json_decode($response, true);
+        curl_close($ch);
 
+        self::set_access_token_cache($responseData['access_token'] ?? '');
+    }
+
+    /**
+     * Set a new access token
+     * @param  int $accesstoken accesstoken for payment provider
+     *
+     */
+    public function set_access_token_cache($accesstoken) {
+        $cache = \cache::make('paygw_unisbg', 'cacheaccesstoken');
+        $cache->set('access_toekn', $accesstoken);
+        $this->accesstoken = $accesstoken;
+    }
+
+    /**
+     * Get access token
+     * @return string
+     */
+    function get_cached_variable() {
+        $cache = \cache::make('paygw_unisbg', 'cacheaccesstoken');
+        $value = $cache->get('access_toekn');
+        return $value;
+    }
 
     /**
      * Checks out a cart in order to process the payment.
@@ -244,31 +286,16 @@ class unisbg_helper {
      * @return array|null
      */
     public function extract_address_parts($address) {
-        $pattern = '/^(\d+)?\s*([\w\s]+?)\s*(\d+)?$/';
+        $pattern = '/^([\w\s\-]+?)\s*(\d+)?$/';
         if (preg_match($pattern, $address, $matches)) {
-            $housenumber = null;
-            $streetname = null;
-
-            // Determine the position of the house number and street name.
-            if (!empty($matches[1]) && is_numeric($matches[1])) {
-                // Format: "123 Main St".
-                $housenumber = $matches[1];
-                $streetname = trim($matches[2]);
-            } else if (!empty($matches[3]) && is_numeric($matches[3])) {
-                // Format: "Main St 123".
-                $housenumber = $matches[3];
-                $streetname = trim($matches[2]);
-            } else {
-                // Only street name is available, no house number.
-                $streetname = trim($matches[2]);
-            }
-
-            return [
-                'number' => $housenumber,
-                'name' => $streetname,
-            ];
-        } else {
-            return null; // Address does not match expected format.
-        }
+              $streetname = isset($matches[1]) ? trim($matches[1]) : null;
+              $housenumber = isset($matches[2]) ? $matches[2] : null;
+              return [
+                  'number' => $housenumber,
+                  'name' => $streetname,
+              ];
+          } else {
+              return null;
+          }
     }
 }
