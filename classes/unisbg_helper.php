@@ -86,12 +86,9 @@ class unisbg_helper {
             'Authorization: Bearer ' . $this->accesstoken,
         ];
         $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $this->baseurl);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        $this->set_curl_options($ch, $this->baseurl, $data);
         curl_setopt($ch, CURLOPT_TIMEOUT, 2);
         curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, false);
 
         $response = curl_exec($ch);
@@ -113,16 +110,13 @@ class unisbg_helper {
      */
     public function set_access_token($config) {
         $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $this->oauthurl);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, "grant_type=client_credentials");
+        $this->set_curl_options($ch, $this->oauthurl, "grant_type=client_credentials");
         curl_setopt($ch, CURLOPT_USERPWD, $config['clientid'] . ':' . $config['secret']);
         $response = curl_exec($ch);
-        $responseData = json_decode($response, true);
+        $responsedata = json_decode($response, true);
         curl_close($ch);
 
-        self::set_access_token_cache($responseData['access_token'] ?? '');
+        self::set_access_token_cache($responsedata['access_token'] ?? '');
     }
 
     /**
@@ -140,7 +134,7 @@ class unisbg_helper {
      * Get access token
      * @return string
      */
-    function get_cached_variable() {
+    public function get_cached_variable() {
         $cache = \cache::make('paygw_unisbg', 'cacheaccesstoken');
         $value = $cache->get('access_toekn');
         return $value;
@@ -173,7 +167,32 @@ class unisbg_helper {
             ]
         );
 
-        $obj = (object) [
+        $obj = $this->set_checkout_data($providerid, $userdata, $itemid, $redirecturl, $notifyurl);
+        $data = json_encode($obj);
+        $headers = [
+            'Content-Type: application/json',
+        ];
+        $ch = curl_init();
+        $this->set_curl_options($ch, $this->baseurl . '/cart' . '/' . $cartid . '/checkout', $data);
+
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        $result = curl_exec($ch);
+        curl_close($ch);
+        $obj = json_decode($result);
+        return $obj->object->url_instant;
+    }
+
+    /**
+     * Creates a checkout with the Provider given an array of items
+     * @param  int $providerid
+     * @param  object $userdata
+     * @param  int $itemid
+     * @param  string $redirecturl
+     * @param  \moodle_url $notifyurl
+     * @return object $result Unformatted API result
+     */
+    public function set_checkout_data($providerid, $userdata, $itemid, $redirecturl, $notifyurl) {
+        return (object) [
             "provider_id" => $providerid,
             "user_variable" => "localIdentifierCheckout",
             "email" => !empty($userdata->email) ? $userdata->email : 'Email Uknown',
@@ -194,20 +213,6 @@ class unisbg_helper {
             "user_url_timeout" => $redirecturl,
             "user_url_notify" => $notifyurl->out(false),
         ];
-        $data = json_encode($obj);
-        $headers = [
-            'Content-Type: application/json',
-        ];
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $this->baseurl . '/cart' . '/' . $cartid . '/checkout');
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
-        $result = curl_exec($ch);
-        curl_close($ch);
-        $obj = json_decode($result);
-        return $obj->object->url_instant;
     }
 
     /**
@@ -242,60 +247,61 @@ class unisbg_helper {
      */
     public function get_starttransaction_data($amount, $itemid, $items) {
         global $USER;
-        $transactiondata = $this->get_redirect_urls();
-        if (true) {
-            $address = self::extract_address_parts($USER->address);
-            $transactiondata['ext_pers_id'] = $USER->id;
-            $transactiondata['extp_vorname'] = $USER->firstname;
-            $transactiondata['extp_nachname'] = $USER->lastname;
-            $transactiondata['extp_strasse'] = $address['name'] ?? null;
-            $transactiondata['extp_hausnummer'] = $address['number'] ?? null;
-            $transactiondata['extp_stadt'] = $USER->city ?? null;
-            $transactiondata['extp_plz'] = '5020';
-            $transactiondata['extp_land_iso'] = $USER->country ?? null;
-            $transactiondata['extp_mail'] = $USER->email ?? null;
-        } else if (false) {
-            $transactiondata['stud_pers_id'] = '1';
+        $transactiondata = [
+            'betrag' => $amount,
+            'zahlungsreferenz' => (string) $itemid,
+            'zahlungsdetails' => implode(',', array_keys($items)),
+        ];
+        $this->get_redirect_urls($transactiondata);
+        $this->get_transaction_data($transactiondata);
+        $customerdata = new customer_data();
+        if ($customerdata->is_intern()) {
+            $customerdata->set_intern_data($transactiondata);
         } else {
-            $transactiondata['bed_pers_id'] = '2';
+            $customerdata->set_extern_data($transactiondata);
         }
-        $transactiondata['betrag'] = $amount;
-        $transactiondata['zahlungszweck'] = 17;
-        $transactiondata['ip_adress'] = $USER->lastip;
-        $transactiondata['zahlungsdetails'] = implode(',', array_keys($items));
-        $transactiondata['zahlungsreferenz'] = $itemid;
-        $transactiondata['session_lang'] = $_SESSION['SESSION']->forcelang;
         return $transactiondata;
     }
 
     /**
      * Returns the redirection urls
-     * @return array
+     * @param array $transactiondata
+     * @return void
      */
-    public function get_redirect_urls() {
-        return [
+    public function get_redirect_urls(&$transactiondata) {
+        $redirecturls = [
           'success_url' => SUCCESS_URL,
           'error_url' => ERROR_URL,
           'feedback_url' => FEEDBACK_URL,
         ];
+        $transactiondata = array_merge($transactiondata, $redirecturls);
     }
 
     /**
-     * Creates a checkout with the Provider given an array of items
-     * @param  string $address
-     * @return array|null
+     * Returns the redirection urls
+     * @param array $transactiondata
+     * @return void
      */
-    public function extract_address_parts($address) {
-        $pattern = '/^([\w\s\-]+?)\s*(\d+)?$/';
-        if (preg_match($pattern, $address, $matches)) {
-              $streetname = isset($matches[1]) ? trim($matches[1]) : null;
-              $housenumber = isset($matches[2]) ? $matches[2] : null;
-              return [
-                  'number' => $housenumber,
-                  'name' => $streetname,
-              ];
-          } else {
-              return null;
-          }
+    public function get_transaction_data(&$transactiondata) {
+        global $USER;
+        $additionaldata = [
+            'zahlungszweck' => PAYMENT_PURPOSE,
+            'ip_adress' => $USER->lastip,
+            'session_lang' => $_SESSION['SESSION']->forcelang,
+        ];
+        $transactiondata = array_merge($transactiondata, $additionaldata);
+    }
+
+    /**
+     * Returns the redirection urls
+     * @param array $transactiondata
+     * @return void
+     */
+    public function set_curl_options(&$ch, $url, $postfields) {
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $postfields);
+        return;
     }
 }

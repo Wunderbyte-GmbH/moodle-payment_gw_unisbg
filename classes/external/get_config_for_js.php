@@ -35,7 +35,6 @@ use external_function_parameters;
 use external_value;
 use external_single_structure;
 use local_shopping_cart\shopping_cart_history;
-use moodle_exception;
 use paygw_unisbg\event\payment_added;
 use paygw_unisbg\task\check_status;
 use stdClass;
