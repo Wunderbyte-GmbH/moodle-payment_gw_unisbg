@@ -98,9 +98,22 @@ class unisbg_helper {
 
         if ($httpcode === 200 && strpos($contenttype, 'application/json') === 0) {
             $o2ptransaction = json_decode($response, true);
+            $this->set_language_url($o2ptransaction);
             return $o2ptransaction;
         }
         return $httpcode;
+    }
+
+    /**
+     * Set a new access token
+     * @param array $o2ptransaction
+     *
+     */
+    private function set_language_url(&$o2ptransaction) {
+        global $USER;
+        if ($o2ptransaction['zahlungsurl']) {
+            $o2ptransaction['zahlungsurl'] .= $USER->lang;
+        }
     }
 
     /**
@@ -151,9 +164,7 @@ class unisbg_helper {
      * @return string The url that can be called for the redirect
      */
     public function checkout_cart($cartid, $providerid, $redirecturl, $userdata, $itemid) {
-
         profile_load_custom_fields($userdata);
-
         $notifyurl = new \moodle_url(
             '/webservice/rest/server.php',
             [
