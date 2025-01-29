@@ -110,9 +110,12 @@ class unisbg_helper {
      *
      */
     private function set_language_url(&$o2ptransaction) {
-        global $USER;
         if ($o2ptransaction['zahlungsurl']) {
-            $o2ptransaction['zahlungsurl'] .= $USER->lang;
+            if (current_language() == 'en') {
+                $o2ptransaction['zahlungsurl'] .= 'en';
+            } else {
+                $o2ptransaction['zahlungsurl'] .= 'de';
+            }
         }
     }
 
