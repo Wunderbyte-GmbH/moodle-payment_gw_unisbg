@@ -25,6 +25,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
+define('PAYMENT_PURPOSE', 17);
 define('SUCCESS_URL', $CFG->wwwroot . '/payment/gateway/unisbg/checkout.php?status=1');
 define('ERROR_URL', $CFG->wwwroot . '/payment/gateway/unisbg/checkout.php?status=0');
 define('FEEDBACK_URL', $CFG->wwwroot . '/payment/gateway/unisbg/success_notify.php');

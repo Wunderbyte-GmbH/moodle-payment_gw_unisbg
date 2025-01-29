@@ -50,6 +50,20 @@ class customer_data {
      * @var string
      */
     private $usercategory;
+
+    /**
+     * @var string base URL
+     */
+    private $internalscope = 'sbg.ac.at';
+
+    /**
+     * @var array base URL
+     */
+    private $internallabels = [
+        'student',
+        'staff',
+    ];
+
     /**
      * customer_data constructor
      *
@@ -74,8 +88,8 @@ class customer_data {
      */
     public function is_intern() {
         if (
-            $this->usercategory == 'student' ||
-            $this->usercategory == 'staff'
+            in_array($this->usercategory, $this->internallabels) &&
+            $this->is_scope_internal()
         ) {
             return true;
         }
@@ -84,7 +98,16 @@ class customer_data {
 
     /**
      * Creates a checkout with the Provider given an array of items
-     * @param object $user
+     * @return bool
+     */
+    private function is_scope_internal() {
+        $userscope = explode('@', $this->user->username)[1] ?? '';
+        return $userscope == $this->internalscope;
+    }
+
+    /**
+     * Creates a checkout with the Provider given an array of items
+     * @param array $transactiondata
      * @return void
      */
     public function set_intern_data(&$transactiondata) {
@@ -102,7 +125,7 @@ class customer_data {
 
     /**
      * Creates a checkout with the Provider given an array of items
-     * @param object $user
+     * @param array $transactiondata
      * @return void
      */
     public function set_extern_data(&$transactiondata) {
