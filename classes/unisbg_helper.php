@@ -98,7 +98,7 @@ class unisbg_helper {
 
         if ($httpcode === 200 && strpos($contenttype, 'application/json') === 0) {
             $o2ptransaction = json_decode($response, true);
-            $this->set_language_url($o2ptransaction);
+            $o2ptransaction['zahlungsurl'] .= $this->get_language_abbreviation();
             return $o2ptransaction;
         }
         return $httpcode;
@@ -109,13 +109,11 @@ class unisbg_helper {
      * @param array $o2ptransaction
      *
      */
-    private function set_language_url(&$o2ptransaction) {
-        if ($o2ptransaction['zahlungsurl']) {
-            if (current_language() == 'en') {
-                $o2ptransaction['zahlungsurl'] .= 'en';
-            } else {
-                $o2ptransaction['zahlungsurl'] .= 'de';
-            }
+    private function get_language_abbreviation() {
+        if (current_language() == 'en') {
+            return 'en';
+        } else {
+            return 'de';
         }
     }
 
@@ -301,7 +299,7 @@ class unisbg_helper {
         $additionaldata = [
             'zahlungszweck' => PAYMENT_PURPOSE,
             'ip_adress' => $USER->lastip,
-            'session_lang' => $_SESSION['SESSION']->forcelang,
+            'session_lang' => $this->get_language_abbreviation(),
         ];
         $transactiondata = array_merge($transactiondata, $additionaldata);
     }
