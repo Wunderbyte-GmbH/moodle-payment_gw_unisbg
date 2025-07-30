@@ -24,10 +24,10 @@
 
 require_once(__DIR__ . '/../../../config.php');
 require_once(__DIR__ . '/classes/plus_payment_service.php');
-require_once(__DIR__ . '/classes/transaction_complete.php');
+require_once(__DIR__ . '/classes/external/transaction_complete.php');
 
 use paygw_unisbg\plus_payment_service;
-use paygw_unisbg\transaction_complete;
+use paygw_unisbg\external\transaction_complete;
 
 $rawbodydata = file_get_contents('php://input');
 $headers = getallheaders();

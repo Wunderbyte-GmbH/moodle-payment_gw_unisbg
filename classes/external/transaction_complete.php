@@ -24,7 +24,7 @@
 
 declare(strict_types=1);
 
-namespace paygw_unisbg;
+namespace paygw_unisbg\external;
 
 use context_system;
 use core_payment\helper;
