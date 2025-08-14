@@ -23,6 +23,8 @@
  */
 $string['modulename'] = 'Payment Gateway für Uni Salzburg';
 
+$string['cachedef_cacheaccesstoken'] = 'Cache-Zugriffs-Token';
+
 $string['amountmismatch'] = 'Der Betrag, den Sie zu zahlen versuchen, entspricht nicht dem gespeicherten Betrag. Ihr Konto wurde nicht belastet.';
 $string['authorising'] = 'Authorisiere die Zahlung. Bitte warten...';
 $string['brandname'] = 'Markenname';

@@ -23,6 +23,8 @@
  */
 $string['modulename'] = 'Payment gateway for Uni Salzburg';
 
+$string['cachedef_cacheaccesstoken'] = 'Cache access token';
+
 $string['amountmismatch'] = 'The amount you attempted to pay does not match the required fee. Your account has not been debited.';
 $string['authorising'] = 'Authorising the payment. Please wait...';
 $string['brandname'] = 'Brand name';
