@@ -45,21 +45,21 @@ class customer_data {
     /**
      * @var object base URL
      */
-    private $user;
+    private object $user;
     /**
      * @var string
      */
-    private $usercategory;
+    private string $usercategory;
 
     /**
      * @var string base URL
      */
-    private $internalscope = 'sbg.ac.at';
+    private string $internalscope = 'sbg.ac.at';
 
     /**
      * @var array base URL
      */
-    private $internallabels = [
+    private array $internallabels = [
         'student',
         'staff',
     ];
@@ -77,7 +77,7 @@ class customer_data {
      * Creates a checkout with the Provider given an array of items
      * @return string
      */
-    private function set_usercategory() {
+    private function set_usercategory(): string {
         $pricecategoryfield = get_config('booking', 'pricecategoryfield');
         return $this->user->profile[$pricecategoryfield] ?? '';
     }
@@ -86,7 +86,7 @@ class customer_data {
      * Creates a checkout with the Provider given an array of items
      * @return bool
      */
-    public function is_intern() {
+    public function is_intern(): bool {
         if (
             in_array($this->usercategory, $this->internallabels) &&
             $this->is_scope_internal()
@@ -100,8 +100,8 @@ class customer_data {
      * Creates a checkout with the Provider given an array of items
      * @return bool
      */
-    private function is_scope_internal() {
-        $userscope = explode('@', $this->user->username)[1] ?? '';
+    private function is_scope_internal(): bool {
+        $userscope = $this->extract_username_and_scope()['scope'] ?? '';
         return $userscope == $this->internalscope;
     }
 
@@ -110,17 +110,25 @@ class customer_data {
      * @param array $transactiondata
      * @return void
      */
-    public function set_intern_data(&$transactiondata) {
-        $transactiondata['benutzername'] = $this->extract_username();
-        return;
+    public function set_intern_data(array &$transactiondata): void {
+        $transactiondata['benutzername'] = $this->extract_username_and_scope()['username'];
     }
 
     /**
-     * Creates a checkout with the Provider given an array of items
-     * @return string
+     * Separate the username using @ and return before string and after string as array
+     * using 'username' and 'scope' as keys.
+     * @return array
      */
-    public function extract_username() {
-        return explode('@', $this->user->username)[0];
+    public function extract_username_and_scope() : array {
+        // Uni Salzburg users have their university username in profile field idnumber.
+        if (!empty($this->user->idnumber)) {
+            $username = $this->user->idnumber;
+        } else {
+            // Users from other universities.
+            $username = $this->user->username;
+        }
+        $separated = explode('@', $username);
+        return ['scope' => $separated[0], 'username' => $separated[1]];
     }
 
     /**
@@ -128,7 +136,7 @@ class customer_data {
      * @param array $transactiondata
      * @return void
      */
-    public function set_extern_data(&$transactiondata) {
+    public function set_extern_data(array &$transactiondata): void {
         $address = $this->extract_address_parts($this->user->address);
         $transactiondata['ext_pers_id'] = $this->user->id;
         $transactiondata['extp_vorname'] = $this->user->firstname;
@@ -139,15 +147,14 @@ class customer_data {
         $transactiondata['extp_plz'] = '5020';
         $transactiondata['extp_land_iso'] = $this->user->country ?? null;
         $transactiondata['extp_mail'] = $this->user->email ?? null;
-        return;
     }
 
     /**
      * Creates a checkout with the Provider given an array of items
      * @param  string $address
-     * @return array|null
+     * @return array
      */
-    private function extract_address_parts($address) {
+    private function extract_address_parts(string $address): array {
         $pattern = '/^([\w\s\-]+?)\s*(\d+)?$/';
         if (preg_match($pattern, $address, $matches)) {
               $streetname = isset($matches[1]) ? trim($matches[1]) : null;
@@ -157,7 +164,7 @@ class customer_data {
                   'name' => $streetname,
               ];
         } else {
-            return null;
+            return [];
         }
     }
 }
