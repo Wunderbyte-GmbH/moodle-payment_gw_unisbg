@@ -35,7 +35,6 @@ $headers = getallheaders();
 if (!empty($rawbodydata)) {
     try {
         $pluspaymentservice = new plus_payment_service();
-        $transactioncomplete = new transaction_complete();
         // Decrypt the message.
         $responsecodeanddata = $pluspaymentservice->handle_ozp_feedback(
             $rawbodydata,
@@ -45,13 +44,23 @@ if (!empty($rawbodydata)) {
             isset($responsecodeanddata['info']['status']) &&
             $responsecodeanddata['info']['status'] == 'SUCCESS'
         ) {
-            $completedtransation = $pluspaymentservice->get_completed_transaction($responsecodeanddata['info']['txn']);
-            if ($completedtransation) {
-                $transactioncomplete->trigger_execution($completedtransation);
-                $pluspaymentservice->return_success_responde($responsecodeanddata['info']);
+            $completedtransaction = $pluspaymentservice->get_completed_transaction($responsecodeanddata['info']['txn']);
+            if ($completedtransaction) {
+                transaction_complete::execute(
+                    $completedtransaction->component,
+                    $completedtransaction->paymentarea,
+                    $completedtransaction->itemid,
+                    $completedtransaction->tid ?? '',
+                    $completedtransaction->token ?? '0',
+                    $completedtransaction->customer ?? '0',
+                    $completedtransaction->ischeckstatus ?? false,
+                    $completedtransaction->resourcepath ?? '',
+                    $completedtransaction->userid ?? 0
+                );
+                $pluspaymentservice->return_success_response($responsecodeanddata['info']);
             }
         }
     } catch (Exception $e) {
-        $pluspaymentservice->return_error_responde($e->getMessage());
+        $pluspaymentservice->return_error_response($e->getMessage());
     }
 }

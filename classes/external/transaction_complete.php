@@ -27,11 +27,14 @@ declare(strict_types=1);
 namespace paygw_unisbg\external;
 
 use context_system;
+use core_external\external_function_parameters;
+use core_external\external_value;
 use core_payment\helper;
 use core_payment\helper as payment_helper;
 use paygw_unisbg\event\delivery_error;
 use paygw_unisbg\event\payment_completed;
 use paygw_unisbg\event\payment_successful;
+use paygw_unisbg\interfaces\interface_transaction_complete;
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -40,139 +43,213 @@ require_once($CFG->libdir . '/externallib.php');
 /**
  * Transaction complete class.
  */
-class transaction_complete {
+class transaction_complete implements interface_transaction_complete {
+    /**
+     * Returns description of method parameters.
+     *
+     * @return external_function_parameters
+     */
+    public static function execute_parameters(): external_function_parameters {
+        return new external_function_parameters([
+            'component' => new external_value(PARAM_COMPONENT, 'The component name'),
+            'paymentarea' => new external_value(PARAM_AREA, 'Payment area in the component'),
+            'itemid' => new external_value(PARAM_INT, 'The item id in the context of the component area'),
+            'tid' => new external_value(PARAM_TEXT, 'unique transaction id'),
+            'token' => new external_value(PARAM_RAW, 'Purchase token', VALUE_DEFAULT, ''),
+            'customer' => new external_value(PARAM_RAW, 'Customer Id', VALUE_DEFAULT, ''),
+            'ischeckstatus' => new external_value(PARAM_BOOL, 'If initial purchase or cron execution', VALUE_DEFAULT, false),
+            'resourcepath' => new external_value(PARAM_TEXT, 'The order id coming back from payone', VALUE_DEFAULT, ''),
+            'userid' => new external_value(PARAM_INT, 'User ID', VALUE_DEFAULT, 0),
+        ]);
+    }
+
     /**
      * Perform what needs to be done when a transaction is reported to be complete.
      * This function does not take cost as a parameter as we cannot rely on any provided value.
      *
-     * @param object $completedtransation Name of the component that the itemid belongs to
+     * @param string $component Name of the component that the itemid belongs to
+     * @param string $paymentarea payment area
+     * @param int $itemid An internal identifier that is used by the component
+     * @param string $tid unique transaction id
+     * @param string $token
+     * @param string $customer
+     * @param bool $ischeckstatus
+     * @param string $resourcepath
+     * @param int $userid
      * @return array
      */
-    public static function trigger_execution(
-        object $completedtransation
+    public static function execute(
+        string $component,
+        string $paymentarea,
+        int $itemid,
+        string $tid,
+        string $token = '0',
+        string $customer = '0',
+        bool $ischeckstatus = false,
+        string $resourcepath = '',
+        int $userid = 0
     ): array {
+        global $USER, $DB;
 
-        global $USER, $DB, $CFG, $DB;
+        if (empty($component)) {
+            $success = false;
+            return [
+                'url' => '',
+                'success' => false,
+                'message' => get_string('internalerror', 'paygw_unisbg') .
+                    " - Component missing in transaction_complete::execute function.",
+            ];
+        }
+        if (empty($paymentarea)) {
+            $success = false;
+            return [
+                'url' => '',
+                'success' => false,
+                'message' => get_string('internalerror', 'paygw_unisbg') .
+                    " - Paymentarea missing in transaction_complete::execute function.",
+            ];
+        }
+        if (empty($itemid)) {
+            $success = false;
+            return [
+                'url' => '',
+                'success' => false,
+                'message' => get_string('internalerror', 'paygw_unisbg') .
+                    " - Itemid missing in transaction_complete::execute function.",
+            ];
+        }
+        if (empty($tid)) {
+            $success = false;
+            return [
+                'url' => '',
+                'success' => false,
+                'message' => get_string('internalerror', 'paygw_unisbg') .
+                    " - TransactionID (tid) missing in transaction_complete::execute function.",
+            ];
+        }
+        if (empty($userid)) {
+            $success = false;
+            return [
+                'url' => '',
+                'success' => false,
+                'message' => get_string('internalerror', 'paygw_unisbg') .
+                    " - Userid missing in transaction_complete::execute function.",
+            ];
+        }
 
-        if (empty($completedtransation)) {
-            // Purchase already stored.
+        $payable = payment_helper::get_payable(
+            $component,
+            $paymentarea,
+            (int) $itemid
+        );
+        $currency = $payable->get_currency();
+
+        // Add surcharge if there is any.
+        $surcharge = helper::get_gateway_surcharge('unisbg');
+        $amount = helper::get_rounded_cost(
+            $payable->get_amount(),
+            $currency,
+            $surcharge
+        );
+
+        $url = helper::get_success_url(
+            $component,
+            $paymentarea,
+            (int) $itemid
+        )->__toString();
+
+        $message = '';
+        $success = true;
+
+        $existingdata = $DB->get_record(
+            'paygw_unisbg',
+            ['unisbg_orderid' => $tid]
+        );
+
+        if (!empty($existingdata)) {
+            return [
+                'url' => $url ?? '',
+                'success' => true,
+                'message' => 'doublechecking payment',
+            ];
+        }
+
+        try {
+            $paymentid = payment_helper::save_payment(
+                $payable->get_account_id(),
+                $component,
+                $paymentarea,
+                (int) $itemid,
+                (int) $USER->id,
+                $amount,
+                $currency,
+                'unisbg'
+            );
+
+            $record = new \stdClass();
+            $record->paymentid = $paymentid;
+            $record->unisbg_orderid = $tid;
+            $record->paymentbrand = 'unknown';
+            $record->pboriginal = 'unknown';
+
+            $DB->insert_record('paygw_unisbg', $record);
+
+            // Set status in open_orders to complete.
+            if (
+                $existingrecord = $DB->get_record(
+                    'paygw_unisbg_openorders',
+                    ['tid' => $tid]
+                )
+            ) {
+                $existingrecord->status = 3;
+                $DB->update_record('paygw_unisbg_openorders', $existingrecord);
+
+                // We trigger the payment_completed event.
+                $context = context_system::instance();
+                $event = payment_completed::create([
+                    'context' => $context,
+                    'userid' => $userid,
+                    'other' => [
+                        'orderid' => $tid,
+                    ],
+                ]);
+                $event->trigger();
+            }
+
+            // We trigger the payment_successful event.
+            $context = context_system::instance();
+            $event = payment_successful::create(['context' => $context, 'other' => [
+                'message' => $message,
+                'orderid' => $tid,
+            ]]);
+            $event->trigger();
+
+            // If the delivery was not successful, we trigger an event.
+            if (
+                !payment_helper::deliver_order(
+                    $component,
+                    $paymentarea,
+                    (int) $itemid,
+                    $paymentid,
+                    (int) $userid
+                )
+            ) {
+                $context = context_system::instance();
+                $event = delivery_error::create(
+                    [
+                        'context' => $context, 'other' =>
+                        [
+                        'message' => $message,
+                        'orderid' => $tid,
+                        ],
+                    ]
+                );
+                $event->trigger();
+            }
+        } catch (\Exception $e) {
+            debugging('Exception while trying to process payment: ' . $e->getMessage(), DEBUG_DEVELOPER);
             $success = false;
             $message = get_string('internalerror', 'paygw_unisbg');
-        } else {
-            $payable = payment_helper::get_payable(
-                $completedtransation->component,
-                $completedtransation->paymentarea,
-                (int) $completedtransation->itemid
-            );
-            $currency = $payable->get_currency();
-
-            // Add surcharge if there is any.
-            $surcharge = helper::get_gateway_surcharge('unisbg');
-            $amount = helper::get_rounded_cost(
-                $payable->get_amount(),
-                $currency,
-                $surcharge
-            );
-
-            $url = helper::get_success_url(
-                $completedtransation->component,
-                $completedtransation->paymentarea,
-                (int) $completedtransation->itemid
-            )->__toString();
-
-            $message = '';
-            $success = true;
-
-            $existingdata = $DB->get_record(
-                'paygw_unisbg',
-                ['unisbg_orderid' => $completedtransation->tid]
-            );
-
-            if (!empty($existingdata)) {
-                return [
-                    'url' => $url ?? '',
-                    'success' => true,
-                    'message' => 'doublechecking payment',
-                ];
-            }
-
-            try {
-                $paymentid = payment_helper::save_payment(
-                    $payable->get_account_id(),
-                    $completedtransation->component,
-                    $completedtransation->paymentarea,
-                    (int) $completedtransation->itemid,
-                    (int) $USER->id,
-                    $amount,
-                    $currency,
-                    'unisbg'
-                );
-
-                $record = new \stdClass();
-                $record->paymentid = $paymentid;
-                $record->unisbg_orderid = $completedtransation->tid;
-                $record->paymentbrand = 'unknown';
-                $record->pboriginal = 'unknown';
-
-                $DB->insert_record('paygw_unisbg', $record);
-
-                // Set status in open_orders to complete.
-                if (
-                    $existingrecord = $DB->get_record(
-                        'paygw_unisbg_openorders',
-                        ['tid' => $completedtransation->tid]
-                    )
-                ) {
-                    $existingrecord->status = 3;
-                    $DB->update_record('paygw_unisbg_openorders', $existingrecord);
-
-                    // We trigger the payment_completed event.
-                    $context = context_system::instance();
-                    $event = payment_completed::create([
-                        'context' => $context,
-                        'userid' => $completedtransation->userid,
-                        'other' => [
-                            'orderid' => $completedtransation->tid,
-                        ],
-                    ]);
-                    $event->trigger();
-                }
-
-                // We trigger the payment_successful event.
-                $context = context_system::instance();
-                $event = payment_successful::create(['context' => $context, 'other' => [
-                    'message' => $message,
-                    'orderid' => $completedtransation->tid,
-                ]]);
-                $event->trigger();
-
-                // If the delivery was not successful, we trigger an event.
-                if (
-                    !payment_helper::deliver_order(
-                        $completedtransation->component,
-                        $completedtransation->paymentarea,
-                        (int) $completedtransation->itemid,
-                        $paymentid,
-                        (int) $completedtransation->userid
-                    )
-                ) {
-                    $context = context_system::instance();
-                    $event = delivery_error::create(
-                        [
-                          'context' => $context, 'other' =>
-                          [
-                            'message' => $message,
-                            'orderid' => $completedtransation->tid,
-                          ],
-                        ]
-                    );
-                    $event->trigger();
-                }
-            } catch (\Exception $e) {
-                debugging('Exception while trying to process payment: ' . $e->getMessage(), DEBUG_DEVELOPER);
-                $success = false;
-                $message = get_string('internalerror', 'paygw_unisbg');
-            }
         }
 
         return [
@@ -180,5 +257,19 @@ class transaction_complete {
             'success' => $success,
             'message' => $message,
         ];
+    }
+
+
+    /**
+     * Returns description of method result value.
+     *
+     * @return external_function_parameters
+     */
+    public static function execute_returns(): external_function_parameters {
+        return new external_function_parameters([
+            'url' => new external_value(PARAM_URL, 'Redirect URL.'),
+            'success' => new external_value(PARAM_BOOL, 'Whether everything was successful or not.'),
+            'message' => new external_value(PARAM_RAW, 'Message (usually the error message).'),
+        ]);
     }
 }

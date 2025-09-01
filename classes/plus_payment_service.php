@@ -104,7 +104,7 @@ class plus_payment_service {
      * @param array $data
      * @return \GuzzleHttp\Psr7\Response
      */
-    public function return_success_responde($data) {
+    public function return_success_response($data) {
         return new Response(
             200,
             ['Content-Type' => 'application/json'],
@@ -117,7 +117,7 @@ class plus_payment_service {
      * @param string $e
      * @return \GuzzleHttp\Psr7\Response
      */
-    public function return_error_responde($e) {
+    public function return_error_response($e) {
         return new Response(
             400,
             ['Content-Type' => 'application/json'],
@@ -126,7 +126,7 @@ class plus_payment_service {
     }
 
     /**
-     * Returns completedtransation
+     * Returns completedtransaction
      * @param string $tid
      * @return object
      */
