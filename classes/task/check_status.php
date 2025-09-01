@@ -63,7 +63,7 @@ class check_status extends \core\task\adhoc_task {
         transaction_complete::execute(
             $taskdata->component,
             $taskdata->paymentarea,
-            $taskdata->itemid,
+            (int)$taskdata->itemid, // Must be int.
             $taskdata->tid ?? '',
             $taskdata->token ?? '0',
             $taskdata->customer ?? '0',

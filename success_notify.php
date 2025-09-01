@@ -49,7 +49,7 @@ if (!empty($rawbodydata)) {
                 transaction_complete::execute(
                     $completedtransaction->component,
                     $completedtransaction->paymentarea,
-                    $completedtransaction->itemid,
+                    (int)$completedtransaction->itemid,
                     $completedtransaction->tid ?? '',
                     $completedtransaction->token ?? '0',
                     $completedtransaction->customer ?? '0',
