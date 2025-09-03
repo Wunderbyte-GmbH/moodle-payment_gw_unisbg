@@ -24,7 +24,7 @@
 
 declare(strict_types=1);
 
-namespace paygw_unisbg\external;
+namespace paygw_unisbg\local;
 
 use context_system;
 use core_external\external_function_parameters;
@@ -43,26 +43,7 @@ require_once($CFG->libdir . '/externallib.php');
 /**
  * Transaction complete class.
  */
-class transaction_complete implements interface_transaction_complete {
-    /**
-     * Returns description of method parameters.
-     *
-     * @return external_function_parameters
-     */
-    public static function execute_parameters(): external_function_parameters {
-        return new external_function_parameters([
-            'component' => new external_value(PARAM_COMPONENT, 'The component name'),
-            'paymentarea' => new external_value(PARAM_AREA, 'Payment area in the component'),
-            'itemid' => new external_value(PARAM_INT, 'The item id in the context of the component area'),
-            'tid' => new external_value(PARAM_TEXT, 'unique transaction id'),
-            'token' => new external_value(PARAM_RAW, 'Purchase token', VALUE_DEFAULT, ''),
-            'customer' => new external_value(PARAM_RAW, 'Customer Id', VALUE_DEFAULT, ''),
-            'ischeckstatus' => new external_value(PARAM_BOOL, 'If initial purchase or cron execution', VALUE_DEFAULT, false),
-            'resourcepath' => new external_value(PARAM_TEXT, 'The order id coming back from payone', VALUE_DEFAULT, ''),
-            'userid' => new external_value(PARAM_INT, 'User ID', VALUE_DEFAULT, 0),
-        ]);
-    }
-
+class transaction_complete {
     /**
      * Perform what needs to be done when a transaction is reported to be complete.
      * This function does not take cost as a parameter as we cannot rely on any provided value.
@@ -257,19 +238,5 @@ class transaction_complete implements interface_transaction_complete {
             'success' => $success,
             'message' => $message,
         ];
-    }
-
-
-    /**
-     * Returns description of method result value.
-     *
-     * @return external_function_parameters
-     */
-    public static function execute_returns(): external_function_parameters {
-        return new external_function_parameters([
-            'url' => new external_value(PARAM_URL, 'Redirect URL.'),
-            'success' => new external_value(PARAM_BOOL, 'Whether everything was successful or not.'),
-            'message' => new external_value(PARAM_RAW, 'Message (usually the error message).'),
-        ]);
     }
 }
