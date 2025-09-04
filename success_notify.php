@@ -24,7 +24,7 @@
 
 require_once(__DIR__ . '/../../../config.php');
 require_once(__DIR__ . '/classes/plus_payment_service.php');
-require_once(__DIR__ . '/classes/external/transaction_complete.php');
+require_once(__DIR__ . '/classes/local/transaction_complete.php');
 
 use paygw_unisbg\plus_payment_service;
 use paygw_unisbg\local\transaction_complete;
