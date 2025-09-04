@@ -77,8 +77,8 @@ log_debug('Incoming request body:', $rawbodydata);
 log_debug('Incoming headers:', $headers);
 
 // Check if an incomming ozp feedback exists.
+$pluspaymentservice = new plus_payment_service();
 if (!empty($rawbodydata)) {
-    $pluspaymentservice = new plus_payment_service();
     try {
         // Decrypt the message.
         $responsecodeanddata = $pluspaymentservice->handle_ozp_feedback(
