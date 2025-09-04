@@ -81,15 +81,6 @@ class transaction_complete {
                     " - Component missing in transaction_complete::execute function.",
             ];
         }
-        if (empty($paymentarea)) {
-            $success = false;
-            return [
-                'url' => '',
-                'success' => false,
-                'message' => get_string('internalerror', 'paygw_unisbg') .
-                    " - Paymentarea missing in transaction_complete::execute function.",
-            ];
-        }
         if (empty($itemid)) {
             $success = false;
             return [
