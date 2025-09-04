@@ -36,7 +36,6 @@ use external_value;
 use external_single_structure;
 use local_shopping_cart\shopping_cart_history;
 use paygw_unisbg\event\payment_added;
-use paygw_unisbg\task\check_status;
 use stdClass;
 use paygw_unisbg\unisbg_helper;
 
@@ -137,35 +136,6 @@ class get_config_for_js extends external_api {
             $itemid = $existingrecord->tid;
         }
 
-        // Create task to check status.
-        // We have to check 1 minute before item gets deleted from cache.
-        $now = time();
-        if (get_config('local_shopping_cart', 'expirationtime') && get_config('local_shopping_cart', 'expirationtime') > 2) {
-            $expirationminutes = get_config('local_shopping_cart', 'expirationtime') - 1;
-            $nextruntime = strtotime('+' . $expirationminutes . ' min', $now);
-        } else {
-            // Fallback.
-            $nextruntime = strtotime('+30 min', $now);
-        }
-
-        // Use ID of logged-in user.
-        $userid = (int)$USER->id;
-
-        $taskdata = new stdClass();
-        $taskdata->itemid = $itemid;
-        $taskdata->customer = $config['clientid'];
-        $taskdata->component = $component;
-        $taskdata->paymentarea = $paymentarea;
-        $taskdata->tid = $itemid;
-        $taskdata->ischeckstatus = true;
-        $taskdata->cartid = $itemid;
-        $taskdata->userid = $userid;
-
-        $checkstatustask = new check_status();
-        $checkstatustask->set_userid($userid);
-        $checkstatustask->set_custom_data($taskdata);
-        $checkstatustask->set_next_run_time($nextruntime);
-        \core\task\manager::reschedule_or_queue_adhoc_task($checkstatustask);
         return [
             'clientid' => $config['clientid'],
             'brandname' => $config['brandname'],
