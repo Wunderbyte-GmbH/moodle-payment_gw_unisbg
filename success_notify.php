@@ -26,15 +26,37 @@ require_once(__DIR__ . '/../../../config.php');
 require_once(__DIR__ . '/classes/plus_payment_service.php');
 require_once(__DIR__ . '/classes/local/transaction_complete.php');
 
+use GuzzleHttp\Psr7\Response;
 use paygw_unisbg\plus_payment_service;
 use paygw_unisbg\local\transaction_complete;
+
+/**
+ * Emit a proper HTTP response.
+ *
+ * @param int $statuscode
+ * @param array $headers
+ * @param mixed $data
+ * @return void
+ */
+function emit_response(Response $response): void {
+    http_response_code($response->getStatusCode());
+
+    foreach ($response->getHeaders() as $name => $values) {
+        foreach ($values as $value) {
+            header(sprintf('%s: %s', $name, $value), false);
+        }
+    }
+
+    echo (string)$response->getBody();
+    exit;
+}
 
 $rawbodydata = file_get_contents('php://input');
 $headers = getallheaders();
 // Check if an incomming ozp feedback exists.
 if (!empty($rawbodydata)) {
+    $pluspaymentservice = new plus_payment_service();
     try {
-        $pluspaymentservice = new plus_payment_service();
         // Decrypt the message.
         $responsecodeanddata = $pluspaymentservice->handle_ozp_feedback(
             $rawbodydata,
@@ -57,10 +79,13 @@ if (!empty($rawbodydata)) {
                     $completedtransaction->resourcepath ?? '',
                     $completedtransaction->userid ?? 0
                 );
-                $pluspaymentservice->return_success_response($responsecodeanddata['info']);
+                $response = $pluspaymentservice->return_success_response($responsecodeanddata['info']);
+                emit_response($response);
             }
         }
     } catch (Exception $e) {
-        $pluspaymentservice->return_error_response($e->getMessage());
+        $response = $pluspaymentservice->return_error_response($e->getMessage());
+        emit_response($response);
     }
+    emit_response($pluspaymentservice->return_error_response('There is a problem with the data provided'));
 }
