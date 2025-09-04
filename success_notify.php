@@ -51,8 +51,31 @@ function emit_response(Response $response): void {
     exit;
 }
 
+/**
+ * Log debug information to the PHP error log with a prefix.
+ *
+ * @param string $message
+ * @param mixed $data
+ * @return void
+ */
+function log_debug(string $message, $data = null): void {
+    if (!debugging('', DEBUG_DEVELOPER)) {
+        return;
+    }
+    $prefix = '[paygw_unisbg] ';
+    if ($data !== null) {
+        $message .= ' ' . var_export($data, true);
+    }
+    error_log($prefix . $message);
+}
+
+
 $rawbodydata = file_get_contents('php://input');
 $headers = getallheaders();
+
+log_debug('Incoming request body:', $rawbodydata);
+log_debug('Incoming headers:', $headers);
+
 // Check if an incomming ozp feedback exists.
 if (!empty($rawbodydata)) {
     $pluspaymentservice = new plus_payment_service();
@@ -62,13 +85,17 @@ if (!empty($rawbodydata)) {
             $rawbodydata,
             $headers
         );
+        log_debug('Decrypted response data:', $responsecodeanddata);
         if (
             isset($responsecodeanddata['info']['status']) &&
             $responsecodeanddata['info']['status'] == 'SUCCESS'
         ) {
             $completedtransaction = $pluspaymentservice->get_completed_transaction($responsecodeanddata['info']['txn']);
+            log_debug('Status is SUCCESS, looking up transaction:', $responsecodeanddata['info']['txn']);
+
             if ($completedtransaction) {
-                transaction_complete::execute(
+                log_debug('Completed transaction object:', $completedtransaction);
+                $result = transaction_complete::execute(
                     $completedtransaction->component,
                     $completedtransaction->paymentarea,
                     (int)$completedtransaction->itemid,
@@ -79,13 +106,23 @@ if (!empty($rawbodydata)) {
                     $completedtransaction->resourcepath ?? '',
                     $completedtransaction->userid ?? 0
                 );
+                log_debug('Result of transaction_complete::execute:', $result);
                 $response = $pluspaymentservice->return_success_response($responsecodeanddata['info']);
                 emit_response($response);
+            } else {
+                log_debug('No completed transaction found for txn.', $responsecodeanddata['info']['txn']);
             }
+        } else {
+            log_debug('Status is not SUCCESS or missing.');
         }
     } catch (Exception $e) {
+        log_debug('Caught exception:', $e->getMessage());
         $response = $pluspaymentservice->return_error_response($e->getMessage());
         emit_response($response);
     }
+    log_debug('Reached end of request handler, sending error response.');
     emit_response($pluspaymentservice->return_error_response('There is a problem with the data provided'));
+} else {
+    log_debug('Empty request body received.');
+    emit_response($pluspaymentservice->return_error_response('Empty request body'));
 }
